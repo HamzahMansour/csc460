@@ -3,13 +3,28 @@
 /**
  * \file LED_Test.c
  * \brief Small set of test functions for controlling LEDs on a AT90USBKey
- *
+ * 
  * \mainpage Simple set of functions to control the state of the onboard
- *  LEDs on the AT90USBKey.
+ *  LEDs on the AT90USBKey. 
  *
  * \author Alexander M. Hoole
  * \date October 2006
  */
+void init_test(void)
+{
+	DDRB = 0xFF;
+	PORTB = 0x00;
+}
+
+void test_disable(void)
+{
+	PORTB = 0x00;
+}
+
+void test_enable(unsigned int mask)
+{
+	PORTB = mask;
+}
 
 void init_LED_D2(void)
 {
@@ -30,5 +45,6 @@ void enable_LED(unsigned int mask)
 
 void disable_LEDs(void)
 {
-		PORTD = 0x00;	//Initialize port to high
+	PORTD = 0x00;	//Initialize port to high
 }
+

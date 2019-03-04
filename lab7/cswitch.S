@@ -7,7 +7,7 @@
   * Note:
   *
   * This code is based on "thread_swtch.S" by Brian S. Dean, and the
-  * "os_cpu_a.asm" of uC/OS-II AVR Specific code by Ole Saether.
+  * "os_cpu_a.asm" of uC/OS-II AVR Specific code by Ole Saether. 
   * They are adapted to match our need of a "full-served" kernel model.
   *
   *  Author:  Dr. Mantis Cheng, 2 October 2006
@@ -20,19 +20,21 @@
 
 
 /* locations of well-known registers */
-SREG  = 0x3F
-SPH   = 0x3E
-SPL   = 0x3D
-EIND 	= 0x3C
+SREG   = 0x3F
+SPH    = 0x3E
+SPL    = 0x3D
+
+EIND   = 0X3C
+
 /*
   * MACROS
   */
 ;
 ; Push all registers and then the status register.
 ; It is important to keep the order of SAVECTX and RESTORECTX  exactly
-; in reverse. Also, when a new process is created, it is important to
+; in reverse. Also, when a new process is created, it is important to 
 ; initialize its "initial" context in the same order as SAVECTX.
-;
+;	
 .macro	SAVECTX
 	push	r0
 	push	r1
@@ -66,10 +68,10 @@ EIND 	= 0x3C
 	push	r29
 	push	r30
 	push	r31
-	in	r31, EIND
-	push r31
-	in r31, SREG
-	push r31
+	in		r31, EIND
+	push	r31
+	in		r31, SREG
+	push	r31
 .endm
 ;
 ; Pop all registers and the status registers
@@ -122,26 +124,26 @@ EIND 	= 0x3C
   * The actual CSwitch() code begins here.
   *
   * This function is called by a user task. Upon entry, we are using
-  * the CurrentP's stack, on top of which contains the return address
+  * the CurrentP's stack, on top of which contains the return address 
   * of the call to CSwitch(). There are three phases in this function:
   *   1) save current CurrentP's context, and then its H/W stack pointer;
   *   2) choose a new CurrentP;
   *   3) restore the new CurrentP's context, i.e., restore its H/W stack pointer.
-  *
+  * 
   * Assumption: This function is executed with interrupts already disabled.
   *
   * Note: AVR devices use LITTLE endian format, i.e., a 16-bit value starts
   * with the lower-order byte first, then the higher-order byte.
   *
   * void CSwitch();
-  * void Exit_Kernel();
+  * void Exit_Kernel(); 
   */
 CSwitch:
-        /*
+        /* 
           * Assume I = 0, i.e., all interrupts are disabled.
           */
         SAVECTX
-        /*
+        /* 
           * Now, we have saved the CurrentP's context.
           * Save the current H/W stack pointer into CurrentP->sp.
           */
@@ -154,12 +156,13 @@ CSwitch:
        /*
          * Now, we should select a new "CurrentP".
          */
+
 Exit_Kernel:
         call Dispatch
         /*
           * We are now ready to restore a new CurrentP's context, i.e.,
           * switching the H/W stack pointer to this new CurrentP->sp.
-          */
+          */ 
         lds  r30, CurrentP
         lds  r31, CurrentP+1  /* Z = (R31,R30) contains the new "sp" */
         ld   r28, Z+
@@ -171,5 +174,5 @@ Exit_Kernel:
           * Note: at the bottom of the CurrentP's context is its return address.
           */
         RESTORECTX
-        ret    /* don't use rti to re-enable interrupts */
+        reti    /* don't use rti to re-enable interrupts */
 /* end of CSwitch() */

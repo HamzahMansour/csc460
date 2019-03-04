@@ -1,11 +1,13 @@
 #include <string.h>
 #include "LED_Test.h"
+#include <avr/interrupt.h>
+
 /**
  * \file shared.c
  * \brief A Skeleton Implementation of an RTOS
- *
+ * 
  * \mainpage A Skeleton Implementation of a "Self-Served" RTOS Model
- * This is an example of how to implement context-switching based on a
+ * This is an example of how to implement context-switching based on a 
  * self-served model. That is, the RTOS is implemented by a collection of
  * user-callable functions. The kernel executes its functions using the calling
  * task's stack.
@@ -19,8 +21,8 @@
  *
  * \section Implementation Note
  * This example uses the ATMEL AT90USB1287 instruction set as an example
- * for implementing the context switching mechanism.
- * This code is ready to be loaded onto an AT90USBKey.  Once loaded the
+ * for implementing the context switching mechanism. 
+ * This code is ready to be loaded onto an AT90USBKey.  Once loaded the 
  * RTOS scheduling code will alternate lighting of the GREEN LED light on
  * LED D2 and D5 whenever the correspoing PING and PONG tasks are running.
  * (See the file "cswitch.S" for details.)
@@ -29,7 +31,7 @@
 //Comment out the following line to remove debugging code from compiled version.
 #define DEBUG
 
-typedef void (*voidfuncptr) (void);      /* pointer to void f(void) */
+typedef void (*voidfuncptr) (void);      /* pointer to void f(void) */ 
 
 #define WORKSPACE     256
 #define MAXPROCESS   4
@@ -53,7 +55,7 @@ extern void CSwitch();
 void Task_Terminate(void);
 
 /**
-  * Exit_kernel() is used when OS_Start() or Task_Terminate() needs to
+  * Exit_kernel() is used when OS_Start() or Task_Terminate() needs to 
   * switch to a new running task.
   */
 extern void Exit_Kernel();
@@ -64,11 +66,11 @@ extern void Exit_Kernel();
 /**
   *  This is the set of states that a task can be in at any given time.
   */
-typedef enum process_states
-{
-   DEAD = 0,
-   READY,
-   RUNNING
+typedef enum process_states 
+{ 
+   DEAD = 0, 
+   READY, 
+   RUNNING 
 } PROCESS_STATES;
 
 
@@ -81,10 +83,10 @@ typedef enum process_states
   * in the ProcessDescriptor.
   * (See file "cswitch.S" for details.)
   */
-typedef struct ProcessDescriptor
+typedef struct ProcessDescriptor 
 {
-   unsigned char *sp;
-   unsigned char workSpace[WORKSPACE];
+   unsigned char *sp;   
+   unsigned char workSpace[WORKSPACE]; 
    PROCESS_STATES state;
 } PD;
 
@@ -99,16 +101,18 @@ static PD Process[MAXPROCESS];
   */
   //??? Removed static because it was blocking external access.
   //??? Rename Cp to CurrentP because 'cp' is reserved in assembly.
-volatile PD* CurrentP;
+volatile PD* CurrentP; 
+
+unsigned int mask = 0b00000000;
 
 /** index to next task to run */
-volatile static unsigned int NextP;
+volatile static unsigned int NextP;  
 
 /** 1 if kernel has been started; 0 otherwise. */
-volatile static unsigned int KernelActive;
+volatile static unsigned int KernelActive;  
 
 /** number of tasks created so far */
-volatile static unsigned int Tasks;
+volatile static unsigned int Tasks;  
 
 
 /**
@@ -117,8 +121,8 @@ volatile static unsigned int Tasks;
  * can just restore its execution context on its stack.
  * (See file "cswitch.S" for details.)
  */
-void Kernel_Create_Task_At( PD *p, voidfuncptr f )
-{
+void Kernel_Create_Task_At( PD *p, voidfuncptr f ) 
+{   
    unsigned char *sp;
 #ifdef DEBUG
    int counter = 0;
@@ -134,33 +138,32 @@ void Kernel_Create_Task_At( PD *p, voidfuncptr f )
 
    //Notice that we are placing the address (16-bit) of the functions
    //onto the stack in reverse byte order (least significant first, followed
-   //by most significant).  This is because the "return" assembly instructions
-   //(rtn and rti) pop addresses off in BIG ENDIAN (most sig. first, least sig.
+   //by most significant).  This is because the "return" assembly instructions 
+   //(rtn and rti) pop addresses off in BIG ENDIAN (most sig. first, least sig. 
    //second), even though the AT90 is LITTLE ENDIAN machine.
 
    //Store terminate at the bottom of stack to protect against stack underrun.
    *(unsigned char *)sp-- = ((unsigned int)Task_Terminate) & 0xff;
    *(unsigned char *)sp-- = (((unsigned int)Task_Terminate) >> 8) & 0xff;
-   *(unsigned char *)sp-- = (((unsigned int)Task_Terminate) >> 16) & 0xff;
+   //*(unsigned char *)sp-- = (((unsigned int)Task_Terminate) >> 16) & 0xff;
 
    //Place return address of function at bottom of stack
    *(unsigned char *)sp-- = ((unsigned int)f) & 0xff;
    *(unsigned char *)sp-- = (((unsigned int)f) >> 8) & 0xff;
-   *(unsigned char *)sp-- = (((unsigned int)f) >> 16) & 0xff;
-
+   //*(unsigned char *)sp-- = (((unsigned int)f) >> 16) & 0xff;
 
 #ifdef DEBUG
    //Fill stack with initial values for development debugging
    //Registers 0 -> 31 and the status register
-   for (counter = 0; counter < 34; counter++)
+   for (counter = 0; counter < 35; counter++)
    {
       *(unsigned char *)sp-- = counter;
    }
 #else
    //Place stack pointer at top of stack
-   sp = sp - 34;
+   sp = sp - 35;
 #endif
-
+      
    p->sp = sp;		/* stack pointer into the "workSpace" */
 
    /*----END of NEW CODE----*/
@@ -174,7 +177,7 @@ void Kernel_Create_Task_At( PD *p, voidfuncptr f )
 /**
   *  Create a new task
   */
-static void Kernel_Create_Task( voidfuncptr f )
+static void Kernel_Create_Task( voidfuncptr f ) 
 {
    int x;
 
@@ -193,7 +196,7 @@ static void Kernel_Create_Task( voidfuncptr f )
   * This internal kernel function is a part of the "scheduler". It chooses the
   * next task to run, i.e., CurrentP.
   */
-  //Removed static because it was blocking external access from assembly file cswitch.S.
+  //Remobed static because it was blocking external access from assembly file cswitch.S.
   //We desire to see a 'T' not a 't' in the avr-nm output from the object file.
 void Dispatch()
 {
@@ -207,7 +210,7 @@ void Dispatch()
      /* we have a new CurrentP */
    CurrentP = &(Process[NextP]);
    CurrentP->state = RUNNING;
-
+ 
    //Moved to bottom (this was in the wrong place).
    NextP = (NextP + 1) % MAXPROCESS;
 }
@@ -222,7 +225,7 @@ void Dispatch()
   * This function initializes the RTOS and must be called before any other
   * system calls.
   */
-void OS_Init()
+void OS_Init() 
 {
    int x;
 
@@ -240,8 +243,8 @@ void OS_Init()
 /**
   * This function starts the RTOS after creating a few tasks.
   */
-void OS_Start()
-{
+void OS_Start() 
+{   
    if ( (! KernelActive) && (Tasks > 0)) {
       Disable_Interrupt();
 
@@ -267,7 +270,7 @@ void Task_Create( voidfuncptr f)
 /**
   * The calling task gives up its share of the processor voluntarily.
   */
-void Task_Next()
+void Task_Next() 
 {
    if (KernelActive) {
      Disable_Interrupt();
@@ -282,7 +285,7 @@ void Task_Next()
 /**
   * The calling task terminates itself.
   */
-void Task_Terminate()
+void Task_Terminate() 
 {
    if (KernelActive) {
       Disable_Interrupt();
@@ -294,7 +297,7 @@ void Task_Terminate()
 
 
 /*============
-  * A Simple Test
+  * A Simple Test 
   *============
   */
 
@@ -302,23 +305,28 @@ void Task_Terminate()
   * A cooperative "Ping" task.
   * Added testing code for LEDs.
   */
-void Ping()
+void Ping() 
 {
   int  x ;
-  init_LED_D5(); //LED off
+  init_LED_D5();
+  
   for(;;){
   	//LED on
 	enable_LED(LED_D5_GREEN);
+	test_enable(0b00100000);
+	mask = 0b00100000;
 
     for( x=0; x < 32000; ++x );   /* do nothing */
 	for( x=0; x < 32000; ++x );   /* do nothing */
-	for( x=0; x < 32000; ++x );   /* do nothing */ //around 8ms ?
+	for( x=0; x < 32000; ++x );   /* do nothing */
 
 	//LED off
+	test_disable();
 	disable_LEDs();
-
+	mask = 0b00000000;
+	  
     /* printf( "*" );  */
-    Task_Next();
+    //Task_Next();
   }
 }
 
@@ -327,62 +335,66 @@ void Ping()
   * A cooperative "Pong" task.
   * Added testing code for LEDs.
   */
-void Pong()
+void Pong() 
 {
   int  x;
   init_LED_D2();
   for(;;) {
 	//LED on
 	enable_LED(LED_D2_GREEN);
+	test_enable(0b00010000);
+	mask = 0b00010000;
 
     for( x=0; x < 32000; ++x );   /* do nothing */
 	for( x=0; x < 32000; ++x );   /* do nothing */
 	for( x=0; x < 32000; ++x );   /* do nothing */
 
 	//LED off
+	test_disable();
 	disable_LEDs();
+	mask = 0b00000000;
 
     /* printf( "." );  */
-    Task_Next();
-
+    //Task_Next();
+	
   }
 }
 
-// ISR(TIMER3_COMPA_vect){
-//
-// }
-//
-// ISR(TIMER4_COMPA_vect){
-//
-// }
+ISR(TIMER3_COMPA_vect){
+	
+	test_enable(0b10000000 | mask);
+	test_enable(mask);
+	Task_Next();
+}
 
 /**
   * This function creates two cooperative tasks, "Ping" and "Pong". Both
   * will run forever.
   */
-int main()
+int main() 
 {
+	Disable_Interrupt();
+	TCCR3A = 0;
+	TCCR3B = 0;
+	// set to CTC (mode 4)
+	TCCR3B |= (1<<WGM32);
+	
+	// set prescaller to 256
+	TCCR3B |= (1<<CS32);
+	
+	OCR3A = 625;
+	
+	// set TOP value (0.5 seconds)
+	TIMSK3 |= (1<<OCIE3A);
+	
+	//set timer to 0
+	TCNT3 = 0;
+	Enable_Interrupt();
+   
+   init_test();
    OS_Init();
-
-   // //Clear timer config.
-   // TCCR3A = 0;
-   // TCCR3B = 0;
-   // //Set to CTC (mode 4)
-   // TCCR3B |= (1<<WGM32);
-   //
-   // //Set prescaller to 256
-   // TCCR3B |= (1<<CS32);
-   //
-   // //Set TOP value (0.5 seconds)
-   // OCR3A = 62;
-   //
-   // //Enable interupt A for timer 3.
-   // TIMSK3 |= (1<<OCIE3A);
-   //
-   // //Set timer to 0 (optional here).
-   // TCNT3 = 0;
-
    Task_Create( Pong );
    Task_Create( Ping );
    OS_Start();
+   return 0;
 }
