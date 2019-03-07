@@ -32,6 +32,7 @@ void Scheduler_StartTask(int16_t delay, int16_t period, task_cb task);
  * Go through the task list and run any tasks that need to be run.  The main function should simply be this
  * function called as often as possible, plus any low-priority code that you want to run sporadically.
  */
-uint32_t Scheduler_Dispatch();
+uint32_t Scheduler_Dispatch_Periodic();
+uint32_t Scheduler_Dispatch_Oneshot();
 
 #endif /* SCHEDULER_H_ */
