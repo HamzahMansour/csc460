@@ -33,6 +33,6 @@ void Scheduler_StartTask(int16_t delay, int16_t period, task_cb task);
  * function called as often as possible, plus any low-priority code that you want to run sporadically.
  */
 uint32_t Scheduler_Dispatch_Periodic();
-uint32_t Scheduler_Dispatch_Oneshot();
+uint32_t Scheduler_Dispatch_Oneshot(uint32_t idle_time);
 
 #endif /* SCHEDULER_H_ */

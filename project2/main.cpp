@@ -1,70 +1,50 @@
-#include "arduino/Arduino.h"
 #include "scheduler.h"
+#include "LED_Test.h"
+#include <queue>
+using namespace std;
 
-uint8_t pulse1_pin = 3;
-uint8_t pulse2_pin = 4;
-uint8_t idle_pin = 7;
-
-// task function for PulsePin task
-void pulse_pin1_task()
-{
-	digitalWrite(pulse1_pin, HIGH);
-
-	digitalWrite(pulse1_pin, LOW);
+void taskA(){
+	// turn on pin 13
+	enableB(0b10000000);
+	for (int i = 0; i < 32000; i++);
+	disableB();
 }
 
-// task function for PulsePin task
-void pulse_pin2_task()
-{
-	digitalWrite(pulse2_pin, HIGH);
-
-	digitalWrite(pulse2_pin, LOW);
+void taskB(){
+	// turn on pin 12
+	enableB(0b01000000);
+	for (int i = 0; i < 32000; i++);
+	disableB();
 }
 
-// idle task
-void idle(uint32_t idle_period)
+void idle(uint32_t idle_time)
 {
 	// this function can perform some low-priority task while the scheduler has nothing to run.
-	// It should return before the idle period (measured in ms) has expired.  For example, it
-	// could sleep or respond to I/O.
-
-	// example idle function that just pulses a pin.
-	digitalWrite(idle_pin, HIGH);
-	delay(idle_period);
-	digitalWrite(idle_pin, LOW);
+	// It should return before the idle period (measured in ms) has expired.
+	Scheduler_Dispatch_Oneshot(idle_time);
 }
 
 void setup()
 {
-	pinMode(pulse1_pin, OUTPUT);
-	pinMode(pulse2_pin, OUTPUT);
-	pinMode(idle_pin, OUTPUT);
-
 	Scheduler_Init();
-
-	// Start task arguments are:
-	//		start offset in ms, period in ms, function callback
-
-	Scheduler_StartTask(0, 500, pulse_pin1_task);
-	Scheduler_StartTask(0, 300, pulse_pin2_task);
+	//start offset in ms, period in ms, function callback
+	Scheduler_StartTask(0, 200, taskA);
+	Scheduler_StartTask(20, 200, taskB);
 }
 
 void loop()
 {
-	uint32_t idle_period = Scheduler_Dispatch();
-	if (idle_period)
+	uint32_t idle_time = Scheduler_Dispatch_Periodic();
+	if (idle_time)
 	{
-		idle(idle_period);
+		idle(idle_time);
 	}
 }
 
-int main()
-{
-	init();
+int main(){
+	initB();
 	setup();
-
-	for (;;)
-	{
+	for (;;){
 		loop();
 	}
 	for (;;);
