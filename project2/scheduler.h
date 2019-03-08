@@ -8,6 +8,8 @@
 
 ///A task callback function
 typedef void (*task_cb)();
+typedef void (*arg_t)();
+typedef void (*oneshot_t)();
 
 /**
  * Initialise the scheduler.  This should be called once in the setup routine.
@@ -26,13 +28,15 @@ void Scheduler_Init();
  * \param period The task will repeat every "period" milliseconds.
  * \param task The callback function that the scheduler is to call.
  */
-void Scheduler_StartTask(int16_t delay, int16_t period, task_cb task);
-
+void Scheduler_StartPeriodicTask(int16_t, int16_t, task_cb, arg_t arr[] );
+void Schedule_OneshotTask(int32_t, int32_t, uint8_t, task_cb, int, arg_t arr[]);
+uint32_t min(uint32_t, uint32_t);
 /**
  * Go through the task list and run any tasks that need to be run.  The main function should simply be this
  * function called as often as possible, plus any low-priority code that you want to run sporadically.
  */
 uint32_t Scheduler_Dispatch_Periodic();
-uint32_t Scheduler_Dispatch_Oneshot(uint32_t idle_time);
+uint32_t Scheduler_Dispatch_Oneshot(uint32_t);
+uint32_t Scheduler_RunTask_Oneshot(oneshot_t);
 
 #endif /* SCHEDULER_H_ */

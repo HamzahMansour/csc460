@@ -1,7 +1,6 @@
 #include "scheduler.h"
 #include "LED_Test.h"
-#include <queue>
-using namespace std;
+#include <stddef.h>
 
 void taskA(){
 	// turn on pin 13
@@ -28,8 +27,8 @@ void setup()
 {
 	Scheduler_Init();
 	//start offset in ms, period in ms, function callback
-	Scheduler_StartTask(0, 200, taskA);
-	Scheduler_StartTask(20, 200, taskB);
+	Scheduler_StartPeriodicTask(0, 200, taskA, NULL);
+	Scheduler_StartPeriodicTask(20, 200, taskB, NULL);
 }
 
 void loop()
