@@ -22,22 +22,29 @@ LinkedList <oneshot_t> system_tasks;
 
 unsigned long current_tic;
 uint32_t last_runtime;
+uint32_t last_oneshottime = 0;
 
 // setup our timer
 void Scheduler_Init()
 {
 	current_tic = 0;
-	Disable_Interrupt();
+	//Clear timer config.
 	TCCR3A = 0;
 	TCCR3B = 0;
-	// set to CTC (mode 4)
-	TCCR3B != (1<<WGM32);
-	// set prescaller to 256
+	//Set to CTC (mode 4)
+	TCCR3B |= (1<<WGM32);
+	
+	//Set prescaller to 256
 	TCCR3B |= (1<<CS32);
 	
-	OCR3A = 312; // about 5 ms
+	//Set TOP value 10ms
+	OCR3A = 625;
 	
+	//Enable interupt A for timer 3.
 	TIMSK3 |= (1<<OCIE3A);
+	
+	//Set timer to 0 (optional here).
+	TCNT3 = 0;
 	Enable_Interrupt();
 	
 }
@@ -45,6 +52,7 @@ void Scheduler_Init()
 ISR(TIMER3_COMPA_vect){
 	// use the timer to determine the time
 	current_tic++;
+	
 }
 
 void Scheduler_StartPeriodicTask(int16_t delay, int16_t period, task_cb task, LinkedList<arg_t> args)
@@ -61,18 +69,18 @@ void Scheduler_StartPeriodicTask(int16_t delay, int16_t period, task_cb task, Li
 	}
 }
 
-void Schedule_OneshotTask(int32_t remaining_time,	int32_t max_time,	uint8_t is_running,	task_cb callback,	int priority,	LinkedList<arg_t> args){
+void Schedule_OneshotTask(int32_t remaining_time,	int32_t max_time, task_cb callback,	int priority,	LinkedList<arg_t> args){
 	
 	if (priority)
 	{
 		oneshot_t newtask = {
-			remaining_time, max_time, is_running, callback, priority, args,
+			remaining_time, max_time, 0, callback, priority, args,
 		};
 		system_tasks.push(newtask);
 	}
 	else {
 		oneshot_t newtask = {
-			remaining_time, max_time, is_running, callback, priority, args,
+			remaining_time, max_time, 0, callback, priority, args,
 		};
 		oneshot_tasks.push(newtask);
 	}
@@ -88,6 +96,10 @@ uint32_t min(uint32_t param1, uint32_t param2)
 uint32_t Scheduler_Dispatch_Periodic()
 {
 	uint8_t i;
+	
+	enableB(0b00100000);
+	for (int i = 0; i < 32000; i++);
+	disableB();
 
 	uint32_t now = current_tic;
 	uint32_t elapsed = now - last_runtime;
@@ -120,14 +132,16 @@ uint32_t Scheduler_Dispatch_Periodic()
 		// If a task was selected to run, call its function.
 		t(args);
 	}
+	
+	last_oneshottime = current_tic;
 	return idle_time;
 }
 
 uint32_t Scheduler_Dispatch_Oneshot(uint32_t idle_time){
-	uint32_t now = current_tic;
-	uint32_t elapsed = now - last_runtime;
 	oneshot_t next_task;
 	bool nexttask_allocated = false;
+	int now = current_tic;
+	int elapsed = now - last_oneshottime;
 
 	if(!system_tasks.empty()){
 		if(system_tasks.front()->is_running){
@@ -146,6 +160,7 @@ uint32_t Scheduler_Dispatch_Oneshot(uint32_t idle_time){
 			nexttask_allocated = true;
 		}
 	}
+	last_oneshottime = now;
 	if(nexttask_allocated) Scheduler_RunTask_Oneshot(next_task);
 }
 
@@ -159,6 +174,9 @@ uint32_t Scheduler_RunTask_Oneshot(oneshot_t next_task){
 
 	// task is done running:
 	if(next_task.priority){
+		enableB(0b00100000);
+		for (int i = 0; i < 32000; i++);
+		disableB();
 		system_tasks.pop();
 		} else {
 		oneshot_tasks.pop();

@@ -2,11 +2,25 @@
 #include "LED_Test.h"
 #include <stddef.h>
 LinkedList<arg_t> obj;
+LinkedList<arg_t> obj1;
+int count = 0;
+
+void taskC(LinkedList<arg_t> &obj){
+	enableB(0b00010000);
+	for (int i = 0; i < 32000; i++);
+	disableB();
+}
 
 void taskA(LinkedList<arg_t> &obj){
 	// turn on pin 13
 	enableB(0b10000000);
 	for (int i = 0; i < 32000; i++);
+	count++;
+	if (count == 4){
+		count = 0;
+		 Schedule_OneshotTask(10,10,taskC,1,obj1 );
+		 //Schedule_OneshotTask(15,10,taskC,0,obj1 );
+	}
 	disableB();
 }
 
@@ -34,9 +48,6 @@ void setup()
 
 void loop()
 {
-	enableB(0b00100000);
-	for (int i = 0; i < 32000; i++);
-	disableB();
 	uint32_t idle_time = Scheduler_Dispatch_Periodic();
 	if (idle_time)
 	{
@@ -45,6 +56,8 @@ void loop()
 }
 
 int main(){
+	arg_t arg1{'a',1};
+	obj1.push(arg1);
 	initB();
 	setup();
 	for (;;){

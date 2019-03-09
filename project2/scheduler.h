@@ -3,10 +3,16 @@
 
 #include <avr/io.h>
 #include <stdlib.h>
+#include "LED_Test.h"
 
 ///Up to this many tasks can be run, in addition to the idle task
 #define MAXTASKS	8
 #include <stdint.h>
+
+typedef struct {
+	char port;
+	uint8_t pin;
+} arg_t;
 
 template <class T> class LinkedList{
 	// Struct inside the class LinkedList
@@ -25,6 +31,7 @@ template <class T> class LinkedList{
 
 	void deleteNode(void * p) // or delete(void *, std::size_t)
 	{
+		if (!p) return;
 		free(p);
 	}
 
@@ -89,11 +96,6 @@ template <class T> class LinkedList{
 	Node *tail;
 };
 
-typedef struct {
-	char port;
-	uint8_t pin;
-} arg_t;
-
 ///A task callback function
 typedef void (*task_cb)(LinkedList<arg_t>&);
 
@@ -127,7 +129,7 @@ void Scheduler_Init();
  * \param task The callback function that the scheduler is to call.
  */
 void Scheduler_StartPeriodicTask(int16_t, int16_t, task_cb, LinkedList<arg_t> );
-void Schedule_OneshotTask(int32_t, int32_t, uint8_t, task_cb, int, LinkedList<arg_t> );
+void Schedule_OneshotTask(int32_t, int32_t, task_cb, int, LinkedList<arg_t> );
 uint32_t min(uint32_t, uint32_t);
 /**
  * Go through the task list and run any tasks that need to be run.  The main function should simply be this
