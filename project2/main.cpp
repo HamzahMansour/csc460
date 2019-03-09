@@ -25,10 +25,11 @@ void idle(uint32_t idle_time)
 
 void setup()
 {
+	LinkedList<int> obj;
 	Scheduler_Init();
 	//start offset in ms, period in ms, function callback
-	Scheduler_StartPeriodicTask(0, 200, taskA, NULL);
-	Scheduler_StartPeriodicTask(20, 200, taskB, NULL);
+	//Scheduler_StartPeriodicTask(0, 200, taskA, obj);
+	//Scheduler_StartPeriodicTask(20, 200, taskB, obj);
 }
 
 void loop()
