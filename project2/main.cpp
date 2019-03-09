@@ -1,15 +1,16 @@
 #include "scheduler.h"
 #include "LED_Test.h"
 #include <stddef.h>
+LinkedList<arg_t> obj;
 
-void taskA(){
+void taskA(LinkedList<arg_t> &obj){
 	// turn on pin 13
 	enableB(0b10000000);
 	for (int i = 0; i < 32000; i++);
 	disableB();
 }
 
-void taskB(){
+void taskB(LinkedList<arg_t> &obj){
 	// turn on pin 12
 	enableB(0b01000000);
 	for (int i = 0; i < 32000; i++);
@@ -25,15 +26,17 @@ void idle(uint32_t idle_time)
 
 void setup()
 {
-	LinkedList<int> obj;
 	Scheduler_Init();
 	//start offset in ms, period in ms, function callback
-	//Scheduler_StartPeriodicTask(0, 200, taskA, obj);
-	//Scheduler_StartPeriodicTask(20, 200, taskB, obj);
+	Scheduler_StartPeriodicTask(0, 200, taskA, obj);
+	Scheduler_StartPeriodicTask(20, 200, taskB, obj);
 }
 
 void loop()
 {
+	enableB(0b00100000);
+	for (int i = 0; i < 32000; i++);
+	disableB();
 	uint32_t idle_time = Scheduler_Dispatch_Periodic();
 	if (idle_time)
 	{

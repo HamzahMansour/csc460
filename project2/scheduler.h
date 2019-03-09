@@ -126,8 +126,8 @@ void Scheduler_Init();
  * \param period The task will repeat every "period" milliseconds.
  * \param task The callback function that the scheduler is to call.
  */
-void Scheduler_StartPeriodicTask(int16_t, int16_t, task_cb, arg_t arr[]);
-void Schedule_OneshotTask(int32_t, int32_t, uint8_t, task_cb, int, arg_t arr[]);
+void Scheduler_StartPeriodicTask(int16_t, int16_t, task_cb, LinkedList<arg_t> );
+void Schedule_OneshotTask(int32_t, int32_t, uint8_t, task_cb, int, LinkedList<arg_t> );
 uint32_t min(uint32_t, uint32_t);
 /**
  * Go through the task list and run any tasks that need to be run.  The main function should simply be this
