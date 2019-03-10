@@ -60,7 +60,6 @@ template <class T> class LinkedList{
 		n->next = NULL;
 		//  If the list is empty, this is NULL, so the end of the list --> OK
 		if (head == NULL){
-			head = NULL;
 			head = n;
 			tail = n;
 		}
@@ -136,7 +135,7 @@ uint32_t min(uint32_t, uint32_t);
  * function called as often as possible, plus any low-priority code that you want to run sporadically.
  */
 uint32_t Scheduler_Dispatch_Periodic();
-uint32_t Scheduler_Dispatch_Oneshot(uint32_t);
-uint32_t Scheduler_RunTask_Oneshot(oneshot_t);
+void Scheduler_Dispatch_Oneshot(uint32_t);
+void Scheduler_RunTask_Oneshot(oneshot_t);
 
 #endif /* SCHEDULER_H_ */

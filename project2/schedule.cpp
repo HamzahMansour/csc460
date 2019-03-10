@@ -52,6 +52,9 @@ void Scheduler_Init()
 ISR(TIMER3_COMPA_vect){
 	// use the timer to determine the time
 	current_tic++;
+	enableB(0b00100000);
+	for (int i = 0; i < 32000; i++);
+	disableB();
 	
 }
 
@@ -96,10 +99,6 @@ uint32_t min(uint32_t param1, uint32_t param2)
 uint32_t Scheduler_Dispatch_Periodic()
 {
 	uint8_t i;
-	
-	enableB(0b00100000);
-	for (int i = 0; i < 32000; i++);
-	disableB();
 
 	uint32_t now = current_tic;
 	uint32_t elapsed = now - last_runtime;
@@ -137,7 +136,7 @@ uint32_t Scheduler_Dispatch_Periodic()
 	return idle_time;
 }
 
-uint32_t Scheduler_Dispatch_Oneshot(uint32_t idle_time){
+void Scheduler_Dispatch_Oneshot(uint32_t idle_time){
 	oneshot_t next_task;
 	bool nexttask_allocated = false;
 	int now = current_tic;
@@ -164,7 +163,7 @@ uint32_t Scheduler_Dispatch_Oneshot(uint32_t idle_time){
 	if(nexttask_allocated) Scheduler_RunTask_Oneshot(next_task);
 }
 
-uint32_t Scheduler_RunTask_Oneshot(oneshot_t next_task){
+void Scheduler_RunTask_Oneshot(oneshot_t next_task){
 	// run the task
 	next_task.is_running = 1;
 	next_task.callback(next_task.args);
@@ -174,11 +173,8 @@ uint32_t Scheduler_RunTask_Oneshot(oneshot_t next_task){
 
 	// task is done running:
 	if(next_task.priority){
-		enableB(0b00100000);
-		for (int i = 0; i < 32000; i++);
-		disableB();
-		system_tasks.pop();
+		if(!system_tasks.empty()) system_tasks.pop();
 		} else {
-		oneshot_tasks.pop();
+		if(!oneshot_tasks.empty()) oneshot_tasks.pop();
 	}
 }
