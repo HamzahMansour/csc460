@@ -52,9 +52,6 @@ void Scheduler_Init()
 ISR(TIMER3_COMPA_vect){
 	// use the timer to determine the time
 	current_tic++;
-	enableB(0b00100000);
-	for (int i = 0; i < 32000; i++);
-	disableB();
 	
 }
 
@@ -106,7 +103,7 @@ uint32_t Scheduler_Dispatch_Periodic()
 	task_cb t = NULL;
 	uint32_t idle_time = 0xFFFFFFFF;
 	LinkedList<arg_t> args;
-
+	
 	// update each task's remaining time, and identify the first ready task (if there is one).
 	for (i = 0; i < MAXTASKS; i++){
 		if (periodic_tasks[i].is_running){
@@ -137,6 +134,7 @@ uint32_t Scheduler_Dispatch_Periodic()
 }
 
 void Scheduler_Dispatch_Oneshot(uint32_t idle_time){
+
 	oneshot_t next_task;
 	bool nexttask_allocated = false;
 	int now = current_tic;
@@ -170,6 +168,10 @@ void Scheduler_RunTask_Oneshot(oneshot_t next_task){
 	//
 
 	// --- task is running, could be interrupted?
+	
+	enableB(0b00100000);
+	for (int i = 0; i < 32000; i++);
+	disableB();
 
 	// task is done running:
 	if(next_task.priority){
@@ -177,4 +179,8 @@ void Scheduler_RunTask_Oneshot(oneshot_t next_task){
 		} else {
 		if(!oneshot_tasks.empty()) oneshot_tasks.pop();
 	}
+	
+	enableB(0b00100000);
+	for (int i = 0; i < 32000; i++);
+	disableB();
 }

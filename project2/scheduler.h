@@ -44,13 +44,13 @@ template <class T> class LinkedList{
 
 	// destructor
 	~LinkedList(){
-		Node *next = head;
+		//Node *next = head;
 
-		while(next) {              // iterate over all elements
-			Node *deleteMe = next;
-			next = next->next;     // save pointer to the next element
-			deleteNode(deleteMe);       // delete the current entry
-		}
+		//while(next) {              // iterate over all elements
+			//Node *deleteMe = next;
+			//next = next->next;     // save pointer to the next element
+			//deleteNode(deleteMe);       // delete the current entry
+		//}
 	}
 
 	// This prepends a new value at the beginning of the list
