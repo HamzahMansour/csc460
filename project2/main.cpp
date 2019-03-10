@@ -11,6 +11,29 @@ void taskC(LinkedList<arg_t> &obj){
 	disableB();
 }
 
+void taskD(LinkedList<arg_t> &obj){
+	enableB(0b00100000);
+	for (int i = 0; i < 32000; i++);
+	for (int i = 0; i < 32000; i++);
+	for (int i = 0; i < 32000; i++);
+	for (int i = 0; i < 32000; i++);
+	for (int i = 0; i < 32000; i++);
+	for (int i = 0; i < 32000; i++);
+	for (int i = 0; i < 32000; i++);
+	for (int i = 0; i < 32000; i++);
+	for (int i = 0; i < 32000; i++);
+	for (int i = 0; i < 32000; i++);
+	for (int i = 0; i < 32000; i++);
+	for (int i = 0; i < 32000; i++);
+	for (int i = 0; i < 32000; i++);
+	for (int i = 0; i < 32000; i++);
+	for (int i = 0; i < 32000; i++);
+	for (int i = 0; i < 32000; i++);
+	Schedule_OneshotTask(10,10,taskC,0,obj1 );
+	Schedule_OneshotTask(15,10,taskC,0,obj1 );
+	disableB();
+}
+
 void taskA(LinkedList<arg_t> &obj){
 	// turn on pin 13
 	enableB(0b10000000);
@@ -18,8 +41,9 @@ void taskA(LinkedList<arg_t> &obj){
 	count++;
 	if (count == 4){
 		count = 0;
+		 Schedule_OneshotTask(15,10,taskD,0,obj1 );
 		 Schedule_OneshotTask(10,10,taskC,1,obj1 );
-		 //Schedule_OneshotTask(15,10,taskC,0,obj1 );
+		 Schedule_OneshotTask(15,10,taskC,0,obj1 );
 	}
 	disableB();
 }
@@ -35,15 +59,15 @@ void idle(uint32_t idle_time)
 {
 	// this function can perform some low-priority task while the scheduler has nothing to run.
 	// It should return before the idle period (measured in ms) has expired.
-	Scheduler_Dispatch_Oneshot(idle_time);
+	Scheduler_Dispatch_Oneshot();
 }
 
 void setup()
 {
 	Scheduler_Init();
 	//start offset in ms, period in ms, function callback
-	Scheduler_StartPeriodicTask(0, 200, taskA, obj);
-	Scheduler_StartPeriodicTask(20, 200, taskB, obj);
+	 Scheduler_StartPeriodicTask(0, 200, taskA, obj);
+	 Scheduler_StartPeriodicTask(20, 200, taskB, obj);
 }
 
 void loop()

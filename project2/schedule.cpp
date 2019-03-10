@@ -23,6 +23,7 @@ LinkedList <oneshot_t> system_tasks;
 unsigned long current_tic;
 uint32_t last_runtime;
 uint32_t last_oneshottime = 0;
+int remaining_Idletime = 0;
 
 // setup our timer
 void Scheduler_Init()
@@ -83,6 +84,7 @@ void Schedule_OneshotTask(int32_t remaining_time,	int32_t max_time, task_cb call
 			remaining_time, max_time, 0, callback, priority, args,
 		};
 		oneshot_tasks.push(newtask);
+		
 	}
 }
 
@@ -130,21 +132,23 @@ uint32_t Scheduler_Dispatch_Periodic()
 	}
 	
 	last_oneshottime = current_tic;
+	remaining_Idletime = idle_time;
 	return idle_time;
 }
 
-void Scheduler_Dispatch_Oneshot(uint32_t idle_time){
+void Scheduler_Dispatch_Oneshot(){
 
 	oneshot_t next_task;
 	bool nexttask_allocated = false;
 	int now = current_tic;
 	int elapsed = now - last_oneshottime;
+	remaining_Idletime -= elapsed;
 
 	if(!system_tasks.empty()){
 		if(system_tasks.front()->is_running){
 			system_tasks.front()->remaining_time -= elapsed;
 			} else {
-			if(system_tasks.front()->max_time < idle_time)
+			if(system_tasks.front()->max_time < remaining_Idletime)
 			next_task = *system_tasks.front();
 			nexttask_allocated  = true;
 		}
@@ -152,13 +156,13 @@ void Scheduler_Dispatch_Oneshot(uint32_t idle_time){
 		if(oneshot_tasks.front()->is_running){
 			oneshot_tasks.front()->remaining_time -= elapsed;
 			} else {
-			if(oneshot_tasks.front()->max_time < idle_time)
+			if(oneshot_tasks.front()->max_time < remaining_Idletime)
 			next_task = *oneshot_tasks.front();
 			nexttask_allocated = true;
 		}
 	}
-	last_oneshottime = now;
 	if(nexttask_allocated) Scheduler_RunTask_Oneshot(next_task);
+	last_oneshottime = current_tic;
 }
 
 void Scheduler_RunTask_Oneshot(oneshot_t next_task){
@@ -168,10 +172,6 @@ void Scheduler_RunTask_Oneshot(oneshot_t next_task){
 	//
 
 	// --- task is running, could be interrupted?
-	
-	enableB(0b00100000);
-	for (int i = 0; i < 32000; i++);
-	disableB();
 
 	// task is done running:
 	if(next_task.priority){
@@ -179,8 +179,4 @@ void Scheduler_RunTask_Oneshot(oneshot_t next_task){
 		} else {
 		if(!oneshot_tasks.empty()) oneshot_tasks.pop();
 	}
-	
-	enableB(0b00100000);
-	for (int i = 0; i < 32000; i++);
-	disableB();
 }

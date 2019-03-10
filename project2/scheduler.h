@@ -21,6 +21,7 @@ template <class T> class LinkedList{
 	struct Node {
 		T x;
 		Node *next;
+		Node *prev;
 	};
 	Node* newNode()
 	{
@@ -40,6 +41,8 @@ template <class T> class LinkedList{
 	// constructor
 	LinkedList(){
 		head = NULL; // set head to NULL
+		tail = NULL;
+		size = 0;
 	}
 
 	// destructor
@@ -58,8 +61,8 @@ template <class T> class LinkedList{
 		Node *n = newNode();   // create new Node
 		n->x = val;             // set value
 		n->next = NULL;
-		//  If the list is empty, this is NULL, so the end of the list --> OK
-		if (head == NULL){
+		
+		if (tail == NULL){
 			head = n;
 			tail = n;
 		}
@@ -67,6 +70,7 @@ template <class T> class LinkedList{
 			tail->next = n;
 			tail = n;
 		}
+		size +=1;
 		
 	}
 
@@ -75,6 +79,7 @@ template <class T> class LinkedList{
 	T pop(){
 		Node *n = head;
 		T ret = n->x;
+		size -= 1;
 
 		head = head->next;
 		deleteNode(n);
@@ -86,13 +91,18 @@ template <class T> class LinkedList{
 	}
 	
 	bool empty(){
-		return head == NULL;
+		return size == 0;
+	}
+	
+	int length(){
+		return size;
 	}
 
 	// private member
 	private:
 	Node *head; // this is the private member variable. It is just a pointer to the first Node
 	Node *tail;
+	int size;
 };
 
 ///A task callback function
@@ -135,7 +145,7 @@ uint32_t min(uint32_t, uint32_t);
  * function called as often as possible, plus any low-priority code that you want to run sporadically.
  */
 uint32_t Scheduler_Dispatch_Periodic();
-void Scheduler_Dispatch_Oneshot(uint32_t);
+void Scheduler_Dispatch_Oneshot();
 void Scheduler_RunTask_Oneshot(oneshot_t);
 
 #endif /* SCHEDULER_H_ */
