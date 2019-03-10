@@ -8,6 +8,9 @@ extern "C" {
 void initB();
 void disableB();
 void enableB(unsigned int mask);
+void initE();
+void disableE();
+void enableE(unsigned int mask);
 
 #ifdef __cplusplus
 	}

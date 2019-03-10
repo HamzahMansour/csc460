@@ -14,23 +14,8 @@ void taskC(LinkedList<arg_t> &obj){
 void taskD(LinkedList<arg_t> &obj){
 	enableB(0b00100000);
 	for (int i = 0; i < 32000; i++);
-	for (int i = 0; i < 32000; i++);
-	for (int i = 0; i < 32000; i++);
-	for (int i = 0; i < 32000; i++);
-	for (int i = 0; i < 32000; i++);
-	for (int i = 0; i < 32000; i++);
-	for (int i = 0; i < 32000; i++);
-	for (int i = 0; i < 32000; i++);
-	for (int i = 0; i < 32000; i++);
-	for (int i = 0; i < 32000; i++);
-	for (int i = 0; i < 32000; i++);
-	for (int i = 0; i < 32000; i++);
-	for (int i = 0; i < 32000; i++);
-	for (int i = 0; i < 32000; i++);
-	for (int i = 0; i < 32000; i++);
-	for (int i = 0; i < 32000; i++);
-	Schedule_OneshotTask(10,10,taskC,0,obj1 );
-	Schedule_OneshotTask(15,10,taskC,0,obj1 );
+	Schedule_OneshotTask(100,100,taskC,0,obj1 );
+	Schedule_OneshotTask(150,100,taskC,0,obj1 );
 	disableB();
 }
 
@@ -41,9 +26,9 @@ void taskA(LinkedList<arg_t> &obj){
 	count++;
 	if (count == 4){
 		count = 0;
-		 Schedule_OneshotTask(15,10,taskD,0,obj1 );
-		 Schedule_OneshotTask(10,10,taskC,1,obj1 );
-		 Schedule_OneshotTask(15,10,taskC,0,obj1 );
+		 Schedule_OneshotTask(150,100,taskD,1,obj1 );
+		 Schedule_OneshotTask(100,100,taskC,1,obj1 );
+		 Schedule_OneshotTask(150,100,taskC,0,obj1 );
 	}
 	disableB();
 }
@@ -83,6 +68,7 @@ int main(){
 	arg_t arg1{'a',1};
 	obj1.push(arg1);
 	initB();
+	initE();
 	setup();
 	for (;;){
 		loop();

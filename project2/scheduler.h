@@ -79,7 +79,7 @@ template <class T> class LinkedList{
 	T pop(){
 		Node *n = head;
 		T ret = n->x;
-		size -= 1;
+		if (size > 0) size -= 1;
 
 		head = head->next;
 		deleteNode(n);

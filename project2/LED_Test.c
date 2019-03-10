@@ -13,3 +13,17 @@ void disableB(){
 void enableB(unsigned int mask){
 	PORTB = mask;
 }
+
+void initE(){
+	DDRE = 0xFF;
+	PORTE = 0x00;
+}
+
+void disableE(){
+	PORTE = 0x00;
+}
+
+void enableE(unsigned int mask){
+	PORTE = mask;
+}
+

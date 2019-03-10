@@ -30,30 +30,29 @@ void Scheduler_Init()
 {
 	current_tic = 0;
 	//Clear timer config.
-	TCCR3A = 0;
-	TCCR3B = 0;
+	TCCR1A = 0;
+	TCCR1B = 0;
 	//Set to CTC (mode 4)
-	TCCR3B |= (1<<WGM32);
+	TCCR1B |= (1<<WGM12);
 	
-	//Set prescaller to 256
-	TCCR3B |= (1<<CS32);
+	TCCR1B |= (1<<CS10);
+	TCCR1B |= (1<<CS12);
 	
 	//Set TOP value 10ms
-	OCR3A = 625;
+	OCR1A = 16;
 	
 	//Enable interupt A for timer 3.
-	TIMSK3 |= (1<<OCIE3A);
+	TIMSK1 |= (1<<OCIE1A);
 	
 	//Set timer to 0 (optional here).
-	TCNT3 = 0;
+	TCNT1 = 0;
 	Enable_Interrupt();
 	
 }
 
-ISR(TIMER3_COMPA_vect){
+ISR(TIMER1_COMPA_vect){
 	// use the timer to determine the time
 	current_tic++;
-	
 }
 
 void Scheduler_StartPeriodicTask(int16_t delay, int16_t period, task_cb task, LinkedList<arg_t> args)
@@ -113,11 +112,14 @@ uint32_t Scheduler_Dispatch_Periodic()
 			periodic_tasks[i].remaining_time -= elapsed;
 			if (periodic_tasks[i].remaining_time <= 0){
 				if (t == NULL){
+					
+					enableE(0b00100000);
+					disableE();
 					// if this task is ready to run, and we haven't already selected a task to run,
 					// select this one.
 					t = periodic_tasks[i].callback;
 					args = periodic_tasks[i].args;
-					periodic_tasks[i].remaining_time += periodic_tasks[i].period;
+					periodic_tasks[i].remaining_time = periodic_tasks[i].period;
 				}
 				idle_time = 0;
 			}
@@ -140,29 +142,22 @@ void Scheduler_Dispatch_Oneshot(){
 
 	oneshot_t next_task;
 	bool nexttask_allocated = false;
-	int now = current_tic;
-	int elapsed = now - last_oneshottime;
-	remaining_Idletime -= elapsed;
+	int elapsedOneshots = current_tic - last_oneshottime;
+	last_oneshottime = current_tic;
+	remaining_Idletime -= elapsedOneshots;
 
 	if(!system_tasks.empty()){
-		if(system_tasks.front()->is_running){
-			system_tasks.front()->remaining_time -= elapsed;
-			} else {
-			if(system_tasks.front()->max_time < remaining_Idletime)
-			next_task = *system_tasks.front();
-			nexttask_allocated  = true;
-		}
-		} else if(!oneshot_tasks.empty()){
-		if(oneshot_tasks.front()->is_running){
-			oneshot_tasks.front()->remaining_time -= elapsed;
-			} else {
-			if(oneshot_tasks.front()->max_time < remaining_Idletime)
-			next_task = *oneshot_tasks.front();
-			nexttask_allocated = true;
-		}
+			if(system_tasks.front()->max_time < remaining_Idletime){
+				next_task = *system_tasks.front();
+				nexttask_allocated  = true;
+			}
+	} else if(!oneshot_tasks.empty()){
+			if(oneshot_tasks.front()->max_time < remaining_Idletime){
+				next_task = *oneshot_tasks.front();
+				nexttask_allocated = true;
+			}
 	}
 	if(nexttask_allocated) Scheduler_RunTask_Oneshot(next_task);
-	last_oneshottime = current_tic;
 }
 
 void Scheduler_RunTask_Oneshot(oneshot_t next_task){
