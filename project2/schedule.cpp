@@ -61,8 +61,6 @@ void Scheduler_Init()
 ISR(TIMER1_COMPA_vect){
 	// use the timer to determine the time
 	current_tic++;
-	enableE(0b00010000);
-	disableE();
 	if(idle_start + gidle_time < current_tic){
  		if(task_type >= 2) {
  			disableB();
