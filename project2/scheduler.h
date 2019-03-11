@@ -1,9 +1,9 @@
 #ifndef SCHEDULER_H_
 #define SCHEDULER_H_
 
-#include <avr/io.h>
+//#include <avr/io.h>
 #include <stdlib.h>
-#include "LED_Test.h"
+//#include "LED_Test.h"
 
 ///Up to this many tasks can be run, in addition to the idle task
 #define MAXTASKS	8
@@ -62,7 +62,7 @@ template <class T> class LinkedList{
 		n->x = val;             // set value
 		n->next = NULL;
 		
-		if (tail == NULL){
+		if (head == NULL){
 			head = n;
 			tail = n;
 		}

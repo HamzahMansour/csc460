@@ -29,6 +29,7 @@ int remaining_Idletime = 0;
 void Scheduler_Init()
 {
 	current_tic = 0;
+	Disable_Interrupt();
 	//Clear timer config.
 	TCCR1A = 0;
 	TCCR1B = 0;
@@ -104,6 +105,7 @@ uint32_t Scheduler_Dispatch_Periodic()
 	task_cb t = NULL;
 	uint32_t idle_time = 0xFFFFFFFF;
 	LinkedList<arg_t> args;
+	int task_indx = -1;
 	
 	// update each task's remaining time, and identify the first ready task (if there is one).
 	for (i = 0; i < MAXTASKS; i++){
@@ -113,13 +115,11 @@ uint32_t Scheduler_Dispatch_Periodic()
 			if (periodic_tasks[i].remaining_time <= 0){
 				if (t == NULL){
 					
-					enableE(0b00100000);
-					disableE();
 					// if this task is ready to run, and we haven't already selected a task to run,
 					// select this one.
+					task_indx = i;
 					t = periodic_tasks[i].callback;
 					args = periodic_tasks[i].args;
-					periodic_tasks[i].remaining_time = periodic_tasks[i].period;
 				}
 				idle_time = 0;
 			}
@@ -129,8 +129,15 @@ uint32_t Scheduler_Dispatch_Periodic()
 		}
 	}
 	if (t != NULL){
+		enableE(0b00100000);
+		disableE();
+		if (periodic_tasks[task_indx].remaining_time > 0){
+			enableE(0b00010000);
+			disableE();
+		}
 		// If a task was selected to run, call its function.
 		t(args);
+		periodic_tasks[task_indx].remaining_time = periodic_tasks[task_indx].period;
 	}
 	
 	last_oneshottime = current_tic;
@@ -161,6 +168,7 @@ void Scheduler_Dispatch_Oneshot(){
 }
 
 void Scheduler_RunTask_Oneshot(oneshot_t next_task){
+
 	// run the task
 	next_task.is_running = 1;
 	next_task.callback(next_task.args);
