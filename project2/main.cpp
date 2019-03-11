@@ -15,7 +15,7 @@ void taskC(LinkedList<arg_t> &obj){
 void taskD(LinkedList<arg_t> &obj){
 	enableB(0b00100000);
 	int t;
-	for (int i = 0; i < 32000; i++) t++;
+	for (int i = 0; i < 320000; i++) t++;
 	Schedule_OneshotTask(10,10,taskC,0,obj1 );
 	Schedule_OneshotTask(15,20,taskC,0,obj1 );
 	disableB();
@@ -29,9 +29,9 @@ void taskA(LinkedList<arg_t> &obj){
 	count++;
 	if (count == 4){
 		count = 0;
-		 Schedule_OneshotTask(15,20,taskD,0,obj1 );
-		 Schedule_OneshotTask(10,20,taskC,1,obj1 );
-		 Schedule_OneshotTask(15,20,taskC,0,obj1 );
+		 //Schedule_OneshotTask(15,100,taskD,0,obj1 );
+		 //Schedule_OneshotTask(10,20,taskC,1,obj1 );
+		 //Schedule_OneshotTask(15,20,taskC,0,obj1 );
 	}
 	disableB();
 }
@@ -56,7 +56,7 @@ void setup()
 	Scheduler_Init();
 	//start offset in ms, period in ms, function callback
 	 Scheduler_StartPeriodicTask(0, 200, taskA, obj);
-	 Scheduler_StartPeriodicTask(20, 200, taskB, obj);
+	 Scheduler_StartPeriodicTask(0, 200, taskB, obj);
 }
 
 void loop()

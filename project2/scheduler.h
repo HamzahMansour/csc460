@@ -1,9 +1,6 @@
 #ifndef SCHEDULER_H_
 #define SCHEDULER_H_
-
-//#include <avr/io.h>
 #include <stdlib.h>
-//#include "LED_Test.h"
 
 ///Up to this many tasks can be run, in addition to the idle task
 #define MAXTASKS	8
@@ -40,20 +37,13 @@ template <class T> class LinkedList{
 	public:
 	// constructor
 	LinkedList(){
-		head = NULL; // set head to NULL
+		head = NULL;
 		tail = NULL;
 		size = 0;
 	}
 
 	// destructor
 	~LinkedList(){
-		//Node *next = head;
-
-		//while(next) {              // iterate over all elements
-			//Node *deleteMe = next;
-			//next = next->next;     // save pointer to the next element
-			//deleteNode(deleteMe);       // delete the current entry
-		//}
 	}
 
 	// This prepends a new value at the beginning of the list
