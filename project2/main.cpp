@@ -1,6 +1,46 @@
 #include "scheduler.h"
 #include "LED_Test.h"
 #include <stddef.h>
+LinkedList<arg_t> obj;
+LinkedList<arg_t> obj1;
+int count = 0;
+
+void taskC(LinkedList<arg_t> &obj){
+	enableB(0b00100000); // pin 11
+	int t;
+	for (int i = 0; i < 32000; i++) t++;
+	disableB();
+}
+
+void taskD(LinkedList<arg_t> &obj){
+	enableB(0b00010000); // pin 10
+	int t;
+	for (int i = 0; i < 32000; i++) t++;
+	Schedule_OneshotTask(10,10,taskC,0,obj1 );
+	Schedule_OneshotTask(15,20,taskC,0,obj1 );
+	disableB();
+}
+
+void taskA(LinkedList<arg_t> &obj){
+	enableB(0b10000000); // pin 13
+	int t;
+	for (int i = 0; i < 32000; i++) t++;
+	count++;
+	if (count == 4){
+		count = 0;
+		//Schedule_OneshotTask(15,300,taskD,0,obj1 );
+		Schedule_OneshotTask(10,20,taskC,1,obj1 );
+		Schedule_OneshotTask(15,20,taskC,0,obj1 );
+	}
+	disableB();
+}
+
+void taskB(LinkedList<arg_t> &obj){
+	enableB(0b01000000); // pin 12
+	int t;
+	for (int i = 0; i < 32000; i++) t++;
+	disableB();
+}
 
 void idle(uint32_t idle_time)
 {
@@ -13,7 +53,8 @@ void setup()
 {
 	Scheduler_Init();
 	//start offset in ms, period in ms, function callback
-	
+	Scheduler_StartPeriodicTask(0, 200, taskA, obj);
+	Scheduler_StartPeriodicTask(0, 200, taskB, obj);
 }
 
 void loop()
@@ -26,6 +67,8 @@ void loop()
 }
 
 int main(){
+	arg_t arg1{'a',1};
+	obj1.push(arg1);
 	initB();
 	initE();
 	setup();

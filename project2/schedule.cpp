@@ -62,11 +62,11 @@ ISR(TIMER1_COMPA_vect){
 	// use the timer to determine the time
 	current_tic++;
 	if(idle_start + gidle_time < current_tic){
- 		if(task_type >= 2) {
- 			disableB();
- 			disableE();
- 			exit(EXIT_FAILURE); // critical failure
- 		}
+		if(task_type >= 2) {
+			disableB();
+			disableE();
+			exit(EXIT_FAILURE); // critical failure
+		}
 	}
 	if(time_conflict_count > 10){
 		disableB();
@@ -90,18 +90,21 @@ void Scheduler_StartPeriodicTask(int16_t delay, int16_t period, task_cb task, Li
 }
 
 void Schedule_OneshotTask(int32_t remaining_time,	int32_t max_time, task_cb callback,	int priority,	LinkedList<arg_t> args){
-	
+	static uint32_t sid = 0;
+	static uint32_t oid = 0;
 	if (priority)
 	{
 		oneshot_t newtask = {
-			remaining_time, max_time, 0, callback, priority, args,
+			remaining_time, max_time, 0, callback, priority, sid, args,
 		};
+		sid++;
 		system_tasks.push(newtask);
 	}
 	else {
 		oneshot_t newtask = {
-			remaining_time, max_time, 0, callback, priority, args,
+			remaining_time, max_time, 0, callback, priority,oid, args,
 		};
+		oid++;
 		oneshot_tasks.push(newtask);
 		
 	}
@@ -153,9 +156,11 @@ uint32_t Scheduler_Dispatch_Periodic()
 		}
 	}
 	if (t != NULL){
-		// increment oneshot front
-		oneshot_tasks->front()->count_skipped++;
-		system_tasks->front()->count_skipped++;
+		
+		enableE(0b00100000); // pin 3
+		disableE();
+		if(!system_tasks.empty()) miss_system++;
+		if(!oneshot_tasks.empty()) miss_oneshot++;
 		
 		// If a task was selected to run, call its function.
 		task_type = 1;
@@ -174,12 +179,14 @@ uint32_t Scheduler_Dispatch_Periodic()
 void Scheduler_Dispatch_Oneshot(){
 	// check our error conditions
 	// missed too many periods
-	if(system_tasks->front()->count_skipped > 10){
+	if(miss_system > 10){
 		disableB();
+		disableE();
+		enableE(0b00010000); // pin 2
 		disableE();
 		exit(EXIT_FAILURE); // critical failure
 	}
-	if(oneshot_tasks->front()->count_skipped > 5){
+	if(miss_oneshot > 5){
 		oneshot_tasks.pop();
 	}
 
@@ -190,15 +197,15 @@ void Scheduler_Dispatch_Oneshot(){
 	remaining_Idletime -= elapsedOneshots;
 
 	if(!system_tasks.empty()){
-			if(system_tasks.front()->max_time < remaining_Idletime){
-				next_task = *system_tasks.front();
-				nexttask_allocated  = true;
-			}
-	} else if(!oneshot_tasks.empty()){
-			if(oneshot_tasks.front()->max_time < remaining_Idletime){
-				next_task = *oneshot_tasks.front();
-				nexttask_allocated = true;
-			}
+		if(system_tasks.front()->max_time < remaining_Idletime){
+			next_task = *system_tasks.front();
+			nexttask_allocated  = true;
+		}
+		} else if(!oneshot_tasks.empty()){
+		if(oneshot_tasks.front()->max_time < remaining_Idletime){
+			next_task = *oneshot_tasks.front();
+			nexttask_allocated = true;
+		}
 	}
 	if(nexttask_allocated) Scheduler_RunTask_Oneshot(next_task);
 }
@@ -207,10 +214,10 @@ void Scheduler_RunTask_Oneshot(oneshot_t next_task){
 
 	// run the task
 	next_task.is_running = 1;
-	if(next_task.priority) 
-		task_type = 2;
+	if(next_task.priority)
+	task_type = 2;
 	else
-		task_type = 3;
+	task_type = 3;
 	next_task.callback(next_task.args);
 	task_type = 0;
 	//
@@ -219,8 +226,14 @@ void Scheduler_RunTask_Oneshot(oneshot_t next_task){
 
 	// task is done running:
 	if(next_task.priority){
-		if(!system_tasks.empty()) system_tasks.pop();
+			if(!system_tasks.empty()) {
+				system_tasks.pop();
+				miss_system = 0;
+			}
 		} else {
-		if(!oneshot_tasks.empty()) oneshot_tasks.pop();
-	}
+			if(!oneshot_tasks.empty()) {
+				oneshot_tasks.pop();
+				miss_oneshot = 0;
+			}
+	    }
 }
