@@ -29,9 +29,9 @@ void taskA(LinkedList<arg_t> &obj){
 	count++;
 	if (count == 4){
 		count = 0;
-		 //Schedule_OneshotTask(15,100,taskD,0,obj1 );
-		 //Schedule_OneshotTask(10,20,taskC,1,obj1 );
-		 //Schedule_OneshotTask(15,20,taskC,0,obj1 );
+		 Schedule_OneshotTask(15,300,taskD,0,obj1 );
+		 Schedule_OneshotTask(10,20,taskC,1,obj1 );
+		 Schedule_OneshotTask(15,20,taskC,0,obj1 );
 	}
 	disableB();
 }

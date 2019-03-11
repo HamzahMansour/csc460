@@ -29,6 +29,8 @@ int idle_start = 0;
 int task_type = 0;
 int gidle_time = 0;
 int time_conflict_count = 0;
+int miss_system = 0;
+int miss_oneshot = 0;
 
 // setup our timer
 void Scheduler_Init()
@@ -153,6 +155,10 @@ uint32_t Scheduler_Dispatch_Periodic()
 		}
 	}
 	if (t != NULL){
+		// increment oneshot front
+		oneshot_tasks->front()->count_skipped++;
+		system_tasks->front()->count_skipped++;
+		
 		// If a task was selected to run, call its function.
 		task_type = 1;
 		t(args);
@@ -168,6 +174,16 @@ uint32_t Scheduler_Dispatch_Periodic()
 }
 
 void Scheduler_Dispatch_Oneshot(){
+	// check our error conditions
+	// missed too many periods
+	if(system_tasks->front()->count_skipped > 10){
+		disableB();
+		disableE();
+		exit(EXIT_FAILURE); // critical failure
+	}
+	if(oneshot_tasks->front()->count_skipped > 5){
+		oneshot_tasks.pop();
+	}
 
 	oneshot_t next_task;
 	bool nexttask_allocated = false;
