@@ -71,6 +71,8 @@ ISR(TIMER1_COMPA_vect){
 	if(time_conflict_count > 10){
 		disableB();
 		disableE();
+		enableE(0b00010000); // pin 2
+		disableE();
 		exit(EXIT_FAILURE); // critical failure
 	}
 }
@@ -156,9 +158,6 @@ uint32_t Scheduler_Dispatch_Periodic()
 		}
 	}
 	if (t != NULL){
-		
-		enableE(0b00100000); // pin 3
-		disableE();
 		if(!system_tasks.empty()) miss_system++;
 		if(!oneshot_tasks.empty()) miss_oneshot++;
 		
@@ -182,7 +181,7 @@ void Scheduler_Dispatch_Oneshot(){
 	if(miss_system > 10){
 		disableB();
 		disableE();
-		enableE(0b00010000); // pin 2
+		enableE(0b00100000); // pin 3
 		disableE();
 		exit(EXIT_FAILURE); // critical failure
 	}

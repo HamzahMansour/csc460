@@ -21,6 +21,22 @@ void taskD(LinkedList<arg_t> &obj){
 	disableB();
 }
 
+void taskD2(LinkedList<arg_t> &obj){
+	enableB(0b00010000); // pin 10
+	int t;
+	for (int i = 0; i < 320000; i++) t++;
+	Schedule_OneshotTask(10,10,taskC,0,obj1 );
+	Schedule_OneshotTask(15,20,taskC,0,obj1 );
+	disableB();
+}
+
+void taskA0(LinkedList<arg_t> &obj){
+	enableB(0b10000000); // pin 13
+	int t;
+	for (int i = 0; i < 32000; i++) t++;
+	disableB();
+}
+
 void taskA(LinkedList<arg_t> &obj){
 	enableB(0b10000000); // pin 13
 	int t;
@@ -28,9 +44,51 @@ void taskA(LinkedList<arg_t> &obj){
 	count++;
 	if (count == 4){
 		count = 0;
-		//Schedule_OneshotTask(15,300,taskD,0,obj1 );
+		Schedule_OneshotTask(15,20,taskD,0,obj1 );
 		Schedule_OneshotTask(10,20,taskC,1,obj1 );
 		Schedule_OneshotTask(15,20,taskC,0,obj1 );
+	}
+	disableB();
+}
+
+void taskA2(LinkedList<arg_t> &obj){
+	enableB(0b10000000); // pin 13
+	int t;
+	for (int i = 0; i < 32000; i++) t++;
+	count++;
+	if (count == 4){
+		count = 0;
+		Schedule_OneshotTask(15,20,taskD2,0,obj1 );
+		Schedule_OneshotTask(10,20,taskC,1,obj1 );
+		Schedule_OneshotTask(15,20,taskC,0,obj1 );
+	}
+	disableB();
+}
+
+void taskA3(LinkedList<arg_t> &obj){
+	enableB(0b10000000); // pin 13
+	int t;
+	for (int i = 0; i < 32000; i++) t++;
+	count++;
+	if (count == 4){
+		count = 0;
+		Schedule_OneshotTask(15,20,taskD,0,obj1 );
+		Schedule_OneshotTask(10,300,taskC,1,obj1 );
+		Schedule_OneshotTask(15,20,taskC,0,obj1 );
+	}
+	disableB();
+}
+
+void taskA4(LinkedList<arg_t> &obj){
+	enableB(0b10000000); // pin 13
+	int t;
+	for (int i = 0; i < 32000; i++) t++;
+	count++;
+	if (count == 4){
+		count = 0;
+		Schedule_OneshotTask(15,20,taskD,0,obj1 );
+		Schedule_OneshotTask(10,30,taskC,1,obj1 );
+		Schedule_OneshotTask(15,400,taskC,0,obj1 );
 	}
 	disableB();
 }
@@ -40,6 +98,36 @@ void taskB(LinkedList<arg_t> &obj){
 	int t;
 	for (int i = 0; i < 32000; i++) t++;
 	disableB();
+}
+
+void test_success(){
+	Scheduler_StartPeriodicTask(0, 400, taskA, obj);
+	Scheduler_StartPeriodicTask(70, 400, taskB, obj);
+}
+
+void test_toolong(){
+	Scheduler_StartPeriodicTask(0, 400, taskA2, obj);
+	Scheduler_StartPeriodicTask(0, 400, taskB, obj);
+}
+
+void test_misssystem(){
+	Scheduler_StartPeriodicTask(0, 400, taskA3, obj);
+	Scheduler_StartPeriodicTask(0, 400, taskB, obj);
+}
+
+void test_missoneshot(){
+	Scheduler_StartPeriodicTask(0, 400, taskA4, obj);
+	Scheduler_StartPeriodicTask(0, 400, taskB, obj);
+}
+
+void test_impossibleschedule(){
+	Scheduler_StartPeriodicTask(0, 20, taskA0, obj);
+	Scheduler_StartPeriodicTask(0, 40, taskB, obj);
+}
+
+void test_timeconflict(){
+	Scheduler_StartPeriodicTask(0, 400, taskA, obj);
+	Scheduler_StartPeriodicTask(0, 400, taskB, obj);
 }
 
 void idle(uint32_t idle_time)
@@ -53,8 +141,13 @@ void setup()
 {
 	Scheduler_Init();
 	//start offset in ms, period in ms, function callback
-	Scheduler_StartPeriodicTask(0, 200, taskA, obj);
-	Scheduler_StartPeriodicTask(0, 200, taskB, obj);
+	test_success();
+//	test_toolong();
+//	test_misssystem();
+//	test_missoneshot();
+//	test_impossibleschedule();
+//	test_timeconflict();
+
 }
 
 void loop()
