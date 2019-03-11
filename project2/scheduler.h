@@ -105,8 +105,8 @@ typedef struct { // one-shot tasks
 	uint8_t is_running;
 	task_cb callback;
 	int priority;
+	int count_skipped;
 	LinkedList<arg_t> args;
-	int count_skipped = 0;
 } oneshot_t;
 //typedef void (*arg_t)();
 //typedef void (*oneshot_t)();

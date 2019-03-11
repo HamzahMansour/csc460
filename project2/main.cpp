@@ -6,24 +6,23 @@ LinkedList<arg_t> obj1;
 int count = 0;
 
 void taskC(LinkedList<arg_t> &obj){
-	enableB(0b00010000);
+	enableB(0b00100000); // pin 11
 	int t;
 	for (int i = 0; i < 32000; i++) t++;
 	disableB();
 }
 
 void taskD(LinkedList<arg_t> &obj){
-	enableB(0b00100000);
+	enableB(0b00010000); // pin 10
 	int t;
-	for (int i = 0; i < 320000; i++) t++;
+	for (int i = 0; i < 32000; i++) t++;
 	Schedule_OneshotTask(10,10,taskC,0,obj1 );
 	Schedule_OneshotTask(15,20,taskC,0,obj1 );
 	disableB();
 }
 
 void taskA(LinkedList<arg_t> &obj){
-	// turn on pin 13
-	enableB(0b10000000);
+	enableB(0b10000000); // pin 13
 	int t;
 	for (int i = 0; i < 32000; i++) t++;
 	count++;
@@ -37,8 +36,7 @@ void taskA(LinkedList<arg_t> &obj){
 }
 
 void taskB(LinkedList<arg_t> &obj){
-	// turn on pin 12
-	enableB(0b01000000);
+	enableB(0b01000000); // pin 12
 	int t;
 	for (int i = 0; i < 32000; i++) t++;
 	disableB();

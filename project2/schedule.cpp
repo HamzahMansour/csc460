@@ -61,8 +61,6 @@ void Scheduler_Init()
 ISR(TIMER1_COMPA_vect){
 	// use the timer to determine the time
 	current_tic++;
-	enableE(0b00010000);
-	disableE();
 	if(idle_start + gidle_time < current_tic){
  		if(task_type >= 2) {
  			disableB();
@@ -96,13 +94,13 @@ void Schedule_OneshotTask(int32_t remaining_time,	int32_t max_time, task_cb call
 	if (priority)
 	{
 		oneshot_t newtask = {
-			remaining_time, max_time, 0, callback, priority, args,
+			remaining_time, max_time, 0, callback, priority, 0, args
 		};
 		system_tasks.push(newtask);
 	}
 	else {
 		oneshot_t newtask = {
-			remaining_time, max_time, 0, callback, priority, args,
+			remaining_time, max_time, 0, callback, priority, 0, args
 		};
 		oneshot_tasks.push(newtask);
 		
@@ -156,8 +154,10 @@ uint32_t Scheduler_Dispatch_Periodic()
 	}
 	if (t != NULL){
 		// increment oneshot front
-		oneshot_tasks->front()->count_skipped++;
-		system_tasks->front()->count_skipped++;
+		oneshot_tasks.front()->count_skipped++;
+		system_tasks.front()->count_skipped++;
+		enableE(0b00100000); // pin 3
+		disableE();
 		
 		// If a task was selected to run, call its function.
 		task_type = 1;
@@ -176,12 +176,14 @@ uint32_t Scheduler_Dispatch_Periodic()
 void Scheduler_Dispatch_Oneshot(){
 	// check our error conditions
 	// missed too many periods
-	if(system_tasks->front()->count_skipped > 10){
+	if(system_tasks.front()->count_skipped > 10){
 		disableB();
+		disableE();
+		enableE(0b00010000); // pin 2
 		disableE();
 		exit(EXIT_FAILURE); // critical failure
 	}
-	if(oneshot_tasks->front()->count_skipped > 5){
+	if(oneshot_tasks.front()->count_skipped > 5){
 		oneshot_tasks.pop();
 	}
 
