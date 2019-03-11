@@ -13,8 +13,7 @@ void setup()
 {
 	Scheduler_Init();
 	//start offset in ms, period in ms, function callback
-	 //Scheduler_StartPeriodicTask(0, 200, taskA, obj);
-	 //Scheduler_StartPeriodicTask(0, 200, taskB, obj);
+	
 }
 
 void loop()
