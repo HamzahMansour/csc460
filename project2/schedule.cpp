@@ -181,11 +181,12 @@ void Scheduler_Dispatch_Oneshot(){
 	if(miss_system > 10){
 		disableB();
 		disableE();
-		enableE(0b00100000); // pin 3
-		disableE();
 		exit(EXIT_FAILURE); // critical failure
 	}
 	if(miss_oneshot > 5){
+		enableE(0b00100000); // pin 3
+		for (int i = 0; i < 12800; i++);
+		disableE();
 		oneshot_tasks.pop();
 	}
 

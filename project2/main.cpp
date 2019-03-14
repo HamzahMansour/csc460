@@ -25,8 +25,8 @@ void taskD2(LinkedList<arg_t> &obj){
 	enableB(0b00010000); // pin 10
 	int t;
 	for (int i = 0; i < 320000; i++) t++;
-	Schedule_OneshotTask(10,10,taskC,0,obj1 );
-	Schedule_OneshotTask(15,20,taskC,0,obj1 );
+	Schedule_OneshotTask(10,60,taskC,0,obj1 );
+	Schedule_OneshotTask(15,60,taskC,0,obj1 );
 	disableB();
 }
 
@@ -44,9 +44,9 @@ void taskA(LinkedList<arg_t> &obj){
 	count++;
 	if (count == 4){
 		count = 0;
-		Schedule_OneshotTask(15,20,taskD,0,obj1 );
-		Schedule_OneshotTask(10,20,taskC,1,obj1 );
-		Schedule_OneshotTask(15,20,taskC,0,obj1 );
+		Schedule_OneshotTask(15,60,taskD,0,obj1 );
+		Schedule_OneshotTask(10,60,taskC,1,obj1 );
+		Schedule_OneshotTask(15,60,taskC,0,obj1 );
 	}
 	disableB();
 }
@@ -58,9 +58,9 @@ void taskA2(LinkedList<arg_t> &obj){
 	count++;
 	if (count == 4){
 		count = 0;
-		Schedule_OneshotTask(15,20,taskD2,0,obj1 );
-		Schedule_OneshotTask(10,20,taskC,1,obj1 );
-		Schedule_OneshotTask(15,20,taskC,0,obj1 );
+		Schedule_OneshotTask(15,60,taskD2,0,obj1 );
+		Schedule_OneshotTask(10,60,taskC,1,obj1 );
+		Schedule_OneshotTask(15,60,taskC,0,obj1 );
 	}
 	disableB();
 }
@@ -72,9 +72,9 @@ void taskA3(LinkedList<arg_t> &obj){
 	count++;
 	if (count == 4){
 		count = 0;
-		Schedule_OneshotTask(15,20,taskD,0,obj1 );
+		Schedule_OneshotTask(15,60,taskD,0,obj1 );
 		Schedule_OneshotTask(10,300,taskC,1,obj1 );
-		Schedule_OneshotTask(15,20,taskC,0,obj1 );
+		Schedule_OneshotTask(15,60,taskC,0,obj1 );
 	}
 	disableB();
 }
@@ -86,8 +86,8 @@ void taskA4(LinkedList<arg_t> &obj){
 	count++;
 	if (count == 4){
 		count = 0;
-		Schedule_OneshotTask(15,20,taskD,0,obj1 );
-		Schedule_OneshotTask(10,30,taskC,1,obj1 );
+		Schedule_OneshotTask(15,60,taskD,0,obj1 );
+		Schedule_OneshotTask(10,60,taskC,1,obj1 );
 		Schedule_OneshotTask(15,400,taskC,0,obj1 );
 	}
 	disableB();
