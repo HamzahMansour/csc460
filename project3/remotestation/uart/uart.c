@@ -9,7 +9,7 @@
 #include <avr/io.h>				
 #include <avr/interrupt.h>		// ISR handling.
 #include "uart.h"
-#define F_CPU 8000000UL
+#define F_CPU 16000000UL
 
 #ifndef F_CPU
 #warning "F_CPU not defined for uart.c."
@@ -26,9 +26,9 @@ static volatile char rx[UART_BUFFER_SIZE]; // buffer of 'char'.
 void uart_putchar (char c)
 {
 	cli();
-	while ( !( UCSR1A & (1<<UDRE1)) ); // Wait for empty transmit buffer           
-	UDR1 = c;  // Putting data into the buffer, forces transmission
-	sei(); // may want to replace with sreg
+	while ( !( UCSR0A & (1<<UDRE0)) ); // Wait for empty transmit buffer           
+	UDR0 = c;  // Putting data into the buffer, forces transmission
+	sei();
 }
 
 char uart_get_byte (int index)
@@ -47,41 +47,34 @@ void uart_putstr(char *s)
 
 void uart_init(UART_BPS bitrate){
 
-	//uint8_t sreg = SREG;
-	//cli();
+	DDRB = 0xff;
+	PORTB = 0xff;
+
+	rxn = 0;
+	uart_rx = 0;
 	
-	// Make sure I/O clock to USART1 is enabled
-	PRR1 &= ~(1 << PRUSART1);
-	
-	// Set baud rate to 19.2k at fOSC = 16 MHz
-	
-	switch(bitrate) {
-		case UART_19200:
-		UBRR1 = 51;
+	unsigned long baud;
+
+	/* Set baud rate */;
+	switch (bitrate) {
+    case UART_38400:
+	    baud = 38400;
 		break;
-		case UART_38400:
-		UBRR1 = 25;
+    case UART_57600:
+        baud = 57600;
+        break;
+	case UART_19200:
+		baud = 19200;
 		break;
-		case UART_57600:
-		UBRR1 = 16;
-		break;
-		case UART_115200:
-		UBRR1 = 8;
-		break;
-		default:
-		UBRR1 = 16;
-	}
+    default:
+        baud = 0;
+    }
 	
-	// Clear USART Transmit complete flag, normal USART transmission speed
-	UCSR1A = (1 << TXC1) | (0 << U2X1);
-	
-	// Enable receiver, transmitter, and rx complete interrupt.
-	UCSR1B = (1<<RXEN1)|(1<<TXEN1)|(1<<RXCIE1);
-	// 8-bit data
-	UCSR1C = ((1<<UCSZ11)|(1<<UCSZ10));
-	// disable 2x speed
-	UCSR1A &= ~(1<<U2X1);
-	// SREG = reg
+	unsigned long baudprescale = (F_CPU / 16 / (baud) - 1);
+	UBRR0 = (uint8_t) baudprescale;
+
+	/* Enable receiver and transmitter */
+	UCSR0B = _BV(TXEN0) | _BV(RXEN0);
 }
 
 uint8_t uart_bytes_received(void)
@@ -98,12 +91,13 @@ void uart_reset_receive(void)
  Interrupt Service Routine (ISR):
 */
 
-ISR(USART1_RX_vect)
+ISR(USART0_RX_vect)
 {
+	while ( !(UCSR0A & (1<<RXC0)) );
 
 	//PORTB = ~_BV(PINB1);
 
-	rx[rxn] = UDR1;
+	rx[rxn] = UDR0;
 	rxn = (rxn + 1) % UART_BUFFER_SIZE;
 	uart_rx = 1; // notify main of receipt of data.
 	//PORTB = PORTB | _BV(PINB1);
