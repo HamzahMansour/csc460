@@ -14,9 +14,9 @@
 #define LOW_BYTE(v)   ((unsigned char) (v))
 #define HIGH_BYTE(v)  ((unsigned char) (((unsigned int) (v)) >> 8))
 
-#define DD_DDR DDRC
-#define DD_PORT PORTC
-#define DD_PIN PC5
+#define DD_DDR DDRL
+#define DD_PORT PORTL
+#define DD_PIN PL7
 
 STATUS_LED_STATE status = LED_OFF;
 LED_STATE spot = LED_OFF;
@@ -50,8 +50,7 @@ void Roomba_Init()
 		_delay_ms(50);
 	}
 
-//	uart_init(UART_19200);
-	uart_init(UART_DEFAULT);
+	uart_init(UART_19200);
 
 	// start the Roomba's SCI
 	uart_putchar(START);

@@ -39,13 +39,12 @@ int main()
 	sei();
 
 	// UART test - drive straight forward at 100 mm/s for 0.5 second
-	/*
 	Roomba_Drive(100, 0x8000);
 
 	_delay_ms(500);
 
 	Roomba_Drive(0, 0);
-	*/
+	
 
 	for (;;)
 	{

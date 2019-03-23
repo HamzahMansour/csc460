@@ -17,10 +17,12 @@ typedef enum _uart_bps
 {
 	UART_38400,
 	UART_57600,
+	UART_19200,
+	UART_115200,
 	UART_DEFAULT,
 } UART_BPS;
 
-#define UART_BUFFER_SIZE 100			// size of Rx ring buffer.
+#define UART_BUFFER_SIZE 32			// size of Rx ring buffer.
 
 volatile uint8_t uart_rx; 		// Flag to indicate uart received a byte
 

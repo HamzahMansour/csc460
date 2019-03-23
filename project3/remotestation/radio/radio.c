@@ -36,9 +36,9 @@ volatile uint8_t transmit_lock;
 // tracks the payload widths of the Rx pipes
 volatile uint8_t rx_pipe_widths[6] = {32, 32, 0, 0, 0, 0};
 // holds the transmit address (Rx pipe 0 is set to this address when transmitting with auto-ack enabled).
-volatile uint8_t tx_address[5] = { 0xe7, 0xe7, 0xe7, 0xe7, 0xe7 };
+volatile uint8_t tx_address[5] = { 0xe7, 0xe7, 0xe7, 0xe7, 0xe7 };	// default address
 // holds the receiver address for Rx pipe 0 (the address is overwritten when transmitting with auto-ack enabled).
-volatile uint8_t rx_pipe0_address[5] = { 0xe7, 0xe7, 0xe7, 0xe7, 0xe7 };
+volatile uint8_t rx_pipe0_address[5] = { 0xe7, 0xe7, 0xe7, 0xe7, 0xe7 }; // default address
 // the driver keeps track of the success status for the last 16 transmissions
 volatile uint16_t tx_history = 0xFF;
 
