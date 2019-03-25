@@ -20,38 +20,52 @@
  Global Variables:
  Variables appearing in both ISR/Main are defined as 'volatile'.
 */
-static volatile int rxn; // buffer 'element' counter.
-static volatile char rx[UART_BUFFER_SIZE]; // buffer of 'char'.
+static volatile int rxn1; // buffer 'element' counter.
+static volatile char rx1[UART_BUFFER_SIZE]; // buffer of 'char'.
+static volatile int rxn2; // buffer 'element' counter.
+static volatile char rx2[UART_BUFFER_SIZE]; // buffer of 'char'.
 
-void uart_putchar (char c)
+void uart_putchar (char c, UART_CONTROL cs)
 {
 	cli();
-	while ( !( UCSR0A & (1<<UDRE0)) ); // Wait for empty transmit buffer           
-	UDR0 = c;  // Putting data into the buffer, forces transmission
+	switch(cs){
+		case CONTROL_UART_1:
+			while ( !( UCSR1A & (1<<UDRE1)) ); // Wait for empty transmit buffer
+			UDR1 = c;  // Putting data into the buffer, forces transmission
+			break;
+		case CONTROL_UART_2:
+			while ( !( UCSR2A & (1<<UDRE2)) ); // Wait for empty transmit buffer
+			UDR2 = c;  // Putting data into the buffer, forces transmission
+			break;
+	}
 	sei();
 }
 
-char uart_get_byte (int index)
+char uart_get_byte (int index, UART_CONTROL cs)
 {
-	if (index < UART_BUFFER_SIZE) {
-		return rx[index];
+	switch(cs){
+		case CONTROL_UART_1:
+			if (index < UART_BUFFER_SIZE) {
+				return rx1[index];
+			}// Putting data into the buffer, forces transmission
+			break;
+		case CONTROL_UART_2:
+			if (index < UART_BUFFER_SIZE) {
+				return rx2[index];
+			}// Putting data into the buffer, forces transmission
+			break;
 	}
+	
 	return 0;
 }
 
-void uart_putstr(char *s)
+void uart_putstr(char *s, UART_CONTROL cs)
 {
-	while(*s) uart_putchar(*s++);
+	while(*s) uart_putchar(*s++, cs);
 	
 }
 
-void uart_init(UART_BPS bitrate){
-
-	DDRB = 0xff;
-	PORTB = 0xff;
-
-	rxn = 0;
-	uart_rx = 0;
+void uart_init(UART_BPS bitrate, UART_CONTROL cs){
 	
 	unsigned long baud;
 
@@ -71,49 +85,96 @@ void uart_init(UART_BPS bitrate){
     }
 	
 	unsigned long baudprescale = (F_CPU / 16 / (baud) - 1);
-	UBRR0 = (uint8_t) baudprescale;
+	
+	switch(cs){
+		case CONTROL_UART_1:
+			rxn1 = 0;
+			uart_rx1 = 0;
+			UBRR1 = (uint8_t) baudprescale;
 
-	/* Enable receiver and transmitter */
-	UCSR0B = _BV(TXEN0) | _BV(RXEN0);
+			/* Enable receiver and transmitter */
+			UCSR1B = (1<<RXEN1)|(1<<TXEN1)|(1<<RXCIE1); 
+		break;
+		case CONTROL_UART_2:
+			rxn2 = 0;
+			uart_rx2 = 0;
+			UBRR2 = (uint8_t) baudprescale;
+
+			/* Enable receiver and transmitter */
+			UCSR2B = (1<<RXEN2)|(1<<TXEN2)|(1<<RXCIE2); 
+		break;
+	}
+	
+	
 }
 
-uint8_t uart_bytes_received(void)
+uint8_t uart_bytes_received(UART_CONTROL cs)
 {
-	return rxn;
+	switch(cs){
+		case CONTROL_UART_1:
+		return rx1;
+		break;
+		case CONTROL_UART_2:
+		return rx2;
+		break;
+	}
 }
 
-void uart_reset_receive(void)
+void uart_reset_receive(UART_CONTROL cs)
 {
-	rxn = 0;
+	switch(cs){
+		case CONTROL_UART_1:
+		rxn1 = 0;
+		break;
+		case CONTROL_UART_2:
+		rxn2 = 0;
+		break;
+	}
 }
 
 /*
  Interrupt Service Routine (ISR):
 */
 
-ISR(USART0_RX_vect)
+ISR(USART1_RX_vect)
 {
-	while ( !(UCSR0A & (1<<RXC0)) );
+	while ( !(UCSR1A & (1<<RXC1)) );
 
 	//PORTB = ~_BV(PINB1);
 
-	rx[rxn] = UDR0;
-	rxn = (rxn + 1) % UART_BUFFER_SIZE;
-	uart_rx = 1; // notify main of receipt of data.
+	rx1[rxn1] = UDR1;
+	rxn1 = (rxn1 + 1) % UART_BUFFER_SIZE;
+	uart_rx1 = 1; // notify main of receipt of data.
 	//PORTB = PORTB | _BV(PINB1);
 }
+/*
+ Interrupt Service Routine (ISR):
+*/
+
+ISR(USART2_RX_vect)
+{
+	while ( !(UCSR2A & (1<<RXC2)) );
+
+	//PORTB = ~_BV(PINB1);
+
+	rx2[rxn2] = UDR2;
+	rxn2 = (rxn2 + 1) % UART_BUFFER_SIZE;
+	uart_rx2 = 1; // notify main of receipt of data.
+	//PORTB = PORTB | _BV(PINB1);
+}
+
 
 /**
  * Prepares UART to receive another payload
  *
  */
 
-void uart_print(uint8_t* output, int size)
+void uart_print(uint8_t* output, int size, UART_CONTROL cs)
 {
 	uint8_t i;
 	for (i = 0; i < size && output[i] != 0; i++)
 	{
-		uart_putchar(output[i]);
+		uart_putchar(output[i], cs);
 	}
 }
 
