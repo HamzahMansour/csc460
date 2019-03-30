@@ -19,7 +19,6 @@ typedef enum _uart_bps
 	UART_38400,
 	UART_57600,
 	UART_19200,
-	UART_115200,
 	UART_DEFAULT,
 } UART_BPS;
 

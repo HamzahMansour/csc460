@@ -67,36 +67,32 @@ void uart_putstr(char *s, UART_CONTROL cs)
 
 void uart_init(UART_BPS bitrate, UART_CONTROL cs){
 	
-	unsigned long baud;
+	unsigned long baudprescale;
 
 	/* Set baud rate */;
 	switch (bitrate) {
 	case UART_9600:
-		baud = 9600;
+		baudprescale = 207;
 		break;
     case UART_38400:
-	    baud = 38400;
+	    baudprescale = 51;
 		break;
     case UART_57600:
-        baud = 57600;
+        baudprescale = 34;
         break;
 	case UART_19200:
-		baud = 19200;
-		break;
-	case UART_115200:
-		baud = 115200;
+		baudprescale = 103;
 		break;
     default:
-        baud = 0;
+        baudprescale = 0;
     }
-	
-	unsigned long baudprescale = (F_CPU / 16 / (baud) - 1);
 	
 	switch(cs){
 		case CONTROL_UART_1:
 			rxn1 = 0;
 			uart_rx1 = 0;
-			UBRR0 = (uint8_t) baudprescale;
+			UBRR0H = 0;
+			UBRR0L = (uint8_t) baudprescale;
 
 			/* Enable receiver and transmitter */
 			UCSR0B = (1<<RXEN0)|(1<<TXEN0)|(1<<RXCIE0); 
@@ -104,7 +100,8 @@ void uart_init(UART_BPS bitrate, UART_CONTROL cs){
 		case CONTROL_UART_2:
 			rxn2 = 0;
 			uart_rx2 = 0;
-			UBRR2 = (uint8_t) baudprescale;
+			UBRR2H = 0;
+			UBRR2L= (uint8_t) baudprescale;
 
 			/* Enable receiver and transmitter */
 			UCSR2B = (1<<RXEN2)|(1<<TXEN2)|(1<<RXCIE2); 
