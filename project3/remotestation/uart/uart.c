@@ -30,8 +30,8 @@ void uart_putchar (char c, UART_CONTROL cs)
 	cli();
 	switch(cs){
 		case CONTROL_UART_1:
-			while ( !( UCSR1A & (1<<UDRE1)) ); // Wait for empty transmit buffer
-			UDR1 = c;  // Putting data into the buffer, forces transmission
+			while ( !( UCSR0A & (1<<UDRE0)) ); // Wait for empty transmit buffer
+			UDR0 = c;  // Putting data into the buffer, forces transmission
 			break;
 		case CONTROL_UART_2:
 			while ( !( UCSR2A & (1<<UDRE2)) ); // Wait for empty transmit buffer
@@ -71,6 +71,9 @@ void uart_init(UART_BPS bitrate, UART_CONTROL cs){
 
 	/* Set baud rate */;
 	switch (bitrate) {
+	case UART_9600:
+		baud = 9600;
+		break;
     case UART_38400:
 	    baud = 38400;
 		break;
@@ -79,6 +82,9 @@ void uart_init(UART_BPS bitrate, UART_CONTROL cs){
         break;
 	case UART_19200:
 		baud = 19200;
+		break;
+	case UART_115200:
+		baud = 115200;
 		break;
     default:
         baud = 0;
@@ -90,10 +96,10 @@ void uart_init(UART_BPS bitrate, UART_CONTROL cs){
 		case CONTROL_UART_1:
 			rxn1 = 0;
 			uart_rx1 = 0;
-			UBRR1 = (uint8_t) baudprescale;
+			UBRR0 = (uint8_t) baudprescale;
 
 			/* Enable receiver and transmitter */
-			UCSR1B = (1<<RXEN1)|(1<<TXEN1)|(1<<RXCIE1); 
+			UCSR0B = (1<<RXEN0)|(1<<TXEN0)|(1<<RXCIE0); 
 		break;
 		case CONTROL_UART_2:
 			rxn2 = 0;
@@ -118,6 +124,7 @@ uint8_t uart_bytes_received(UART_CONTROL cs)
 		return rx2;
 		break;
 	}
+	return 0;
 }
 
 void uart_reset_receive(UART_CONTROL cs)
@@ -136,13 +143,13 @@ void uart_reset_receive(UART_CONTROL cs)
  Interrupt Service Routine (ISR):
 */
 
-ISR(USART1_RX_vect)
+ISR(USART0_RX_vect)
 {
-	while ( !(UCSR1A & (1<<RXC1)) );
+	while ( !(UCSR0A & (1<<RXC0)) );
 
 	//PORTB = ~_BV(PINB1);
 
-	rx1[rxn1] = UDR1;
+	rx1[rxn1] = UDR0;
 	rxn1 = (rxn1 + 1) % UART_BUFFER_SIZE;
 	uart_rx1 = 1; // notify main of receipt of data.
 	//PORTB = PORTB | _BV(PINB1);

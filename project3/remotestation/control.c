@@ -28,15 +28,27 @@ int main()
 	// LEDs
 	DDRL = 0xFF;
 	PORTL = 0xFF;
+	DDRB = 0xFF;
+	uart_init(UART_9600, CONTROL_UART_2);
 
 	Roomba_Init(); // initialize the roomba
 
 	sei();
+	
+	while(1){
+		char byte1 = uart_get_byte(1,CONTROL_UART_2);
+		char byte2 = uart_get_byte(2,CONTROL_UART_2);
+		if(byte1 == '1' && byte2 == '2') PORTB = 0b10000000;
+		else PORTB = 0b00000000;
+		uart_putchar(byte1, CONTROL_UART_2);
+		uart_putchar(byte2, CONTROL_UART_2);
+		uart_reset_receive(CONTROL_UART_2);
+	}
 
 	// UART test - drive straight forward at 100 mm/s for 0.5 second
-	Roomba_Drive(100, 0x8000);
+	//Roomba_Drive(100, 0x8000);
 
-	_delay_ms(500);
+	//_delay_ms(500);
 
 	//Roomba_Drive(0, 0);
 	
