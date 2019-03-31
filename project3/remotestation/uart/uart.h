@@ -68,13 +68,19 @@ typedef enum _uart_bps
 	UART_DEFAULT,
 } UART_BPS;
 
+typedef enum _uart_channel
+{
+	CH_1,
+	CH_2,
+} UART_CHANNEL;
+
 #define UART_BUFFER_SIZE    32
 
-void uart_init(UART_BPS bitrate);
-void uart_putchar(uint8_t byte);
-uint8_t uart_get_byte(int index);
-uint8_t uart_bytes_received(void);
-void uart_reset_receive(void);
+void uart_init(UART_BPS bitrate, UART_CHANNEL);
+void uart_putchar(uint8_t byte, UART_CHANNEL);
+uint8_t uart_get_byte(int index, UART_CHANNEL);
+uint8_t uart_bytes_received(UART_CHANNEL);
+void uart_reset_receive(UART_CHANNEL);
 
 #endif
 
