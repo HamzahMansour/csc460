@@ -66,6 +66,9 @@ void uart_putstr(char *s, UART_CONTROL cs)
 }
 
 void uart_init(UART_BPS bitrate, UART_CONTROL cs){
+
+	//DDRB = 0xff;
+	//PORTB = 0xff;
 	
 	unsigned long baudprescale;
 
@@ -95,7 +98,10 @@ void uart_init(UART_BPS bitrate, UART_CONTROL cs){
 			UBRR0L = (uint8_t) baudprescale;
 
 			/* Enable receiver and transmitter */
-			UCSR0B = (1<<RXEN0)|(1<<TXEN0)|(1<<RXCIE0); 
+			UCSR0B = _BV(RXEN0)|_BV(TXEN0) | _BV(RXCIE0);
+
+			/* Set frame format: 8data, 2stop bit */
+			UCSR0C = (1<<USBS0)|(1<<UCSZ00) | _BV(UCSZ01) 
 		break;
 		case CONTROL_UART_2:
 			rxn2 = 0;
@@ -104,7 +110,10 @@ void uart_init(UART_BPS bitrate, UART_CONTROL cs){
 			UBRR2L= (uint8_t) baudprescale;
 
 			/* Enable receiver and transmitter */
-			UCSR2B = (1<<RXEN2)|(1<<TXEN2)|(1<<RXCIE2); 
+			UCSR0B = _BV(RXEN0)|_BV(TXEN0) | _BV(RXCIE0);
+
+			/* Set frame format: 8data, 2stop bit */
+			UCSR0C = (1<<USBS0)|(1<<UCSZ00) | _BV(UCSZ01)
 		break;
 	}
 	
@@ -115,10 +124,10 @@ uint8_t uart_bytes_received(UART_CONTROL cs)
 {
 	switch(cs){
 		case CONTROL_UART_1:
-		return rx1;
+		return rxn1;
 		break;
 		case CONTROL_UART_2:
-		return rx2;
+		return rxn2;
 		break;
 	}
 	return 0;
