@@ -17,6 +17,7 @@ uint8_t roomba_addr[5] = { 0x98, 0x76, 0x54, 0x32, 0x10 };	// roomba radio addre
 volatile uint8_t rxflag = 0;
 
 //static radiopacket_t packet;
+//pl4 and pl5 pan and tilt PF0 analog pin 0 lazer
 
 int main()
 {
@@ -35,33 +36,19 @@ int main()
 
 	sei();
 	
-// 	while(1){
-// 		while (uart_bytes_received(CH_2) < 1);
-// 		char byte1 = uart_get_byte(0,CH_2);
-// 		
-// 		if(byte1 == 0) {
-// 			PORTB = 0b00100000;
-// 		}
-//  		if(byte1 == 2) {
-//  				PORTB = 0b10000000;
-//  		}
-//  		//uart_putchar(byte1,CH_2);
-//  		//if(byte1 == 1){PORTB = 0b00000000;}
-// 		uart_reset_receive(CH_2);
-// 	}
-// 	char byte1 = 2;
-// 	
-// 	while(1){
-// 		uart_putchar(2,CH_2);
-// 		_delay_ms(500);
-// 	}
+	while(1){
+		while (uart_bytes_received(CH_2) != 1);
+		int byte1 = uart_get_byte(0, CH_2);
+		if(byte1 == 2) PORTB = 0b10000000;
+		else PORTB = 0b00000000;
+	}
 
 // 	UART test - drive straight forward at 100 mm/s for 0.5 second
-	Roomba_Drive(100, 0x8000);
+	//Roomba_Drive(100, 0x8000);
 			
-	_delay_ms(500);
+	//_delay_ms(500);
 		
-	Roomba_Drive(0, 0);
+	//Roomba_Drive(0, 0);
 		
 
 
