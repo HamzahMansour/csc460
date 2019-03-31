@@ -6,190 +6,114 @@
  * @brief  UART Driver targetted for the AT90USB1287
  *
  */
-#include <avr/io.h>				
-#include <avr/interrupt.h>		// ISR handling.
 #include "uart.h"
-#define F_CPU 16000000UL
+
+#define F_CPU 8000000UL
 
 #ifndef F_CPU
 #warning "F_CPU not defined for uart.c."
 #define F_CPU 11059200UL
 #endif
 
-/*
- Global Variables:
- Variables appearing in both ISR/Main are defined as 'volatile'.
-*/
-static volatile int rxn1; // buffer 'element' counter.
-static volatile char rx1[UART_BUFFER_SIZE]; // buffer of 'char'.
-static volatile int rxn2; // buffer 'element' counter.
-static volatile char rx2[UART_BUFFER_SIZE]; // buffer of 'char'.
+static volatile uint8_t uart_buffer[UART_BUFFER_SIZE];
+static volatile uint8_t uart_buffer_index;
 
-void uart_putchar (char c, UART_CONTROL cs)
+/**
+ * Initalize UART
+ *
+ */
+void uart_init(UART_BPS bitrate)
 {
-	cli();
-	switch(cs){
-		case CONTROL_UART_1:
-			while ( !( UCSR0A & (1<<UDRE0)) ); // Wait for empty transmit buffer
-			UDR0 = c;  // Putting data into the buffer, forces transmission
-			break;
-		case CONTROL_UART_2:
-			while ( !( UCSR2A & (1<<UDRE2)) ); // Wait for empty transmit buffer
-			UDR2 = c;  // Putting data into the buffer, forces transmission
-			break;
-	}
-	sei();
-}
+	UCSR0A = _BV(U2X1);
+	UCSR0B = _BV(RXEN0) | _BV(TXEN0) | _BV(RXCIE0);
+	UCSR0C = _BV(UCSZ01) | _BV(UCSZ00);
 
-char uart_get_byte (int index, UART_CONTROL cs)
-{
-	switch(cs){
-		case CONTROL_UART_1:
-			if (index < UART_BUFFER_SIZE) {
-				return rx1[index];
-			}// Putting data into the buffer, forces transmission
-			break;
-		case CONTROL_UART_2:
-			if (index < UART_BUFFER_SIZE) {
-				return rx2[index];
-			}// Putting data into the buffer, forces transmission
-			break;
-	}
-	
-	return 0;
-}
+	UBRR0H = 0;	// for any speed >= 9600 bps, the UBBR value fits in the low byte.
 
-void uart_putstr(char *s, UART_CONTROL cs)
-{
-	while(*s) uart_putchar(*s++, cs);
-	
-}
-
-void uart_init(UART_BPS bitrate, UART_CONTROL cs){
-
-	//DDRB = 0xff;
-	//PORTB = 0xff;
-	
-	unsigned long baudprescale;
-
-	/* Set baud rate */;
-	switch (bitrate) {
+	// See the appropriate AVR hardware specification for a table of UBBR values at different
+	// clock speeds.
+	switch (bitrate)
+	{
 	case UART_9600:
-		baudprescale = 207;
-		break;
-    case UART_38400:
-	    baudprescale = 51;
-		break;
-    case UART_57600:
-        baudprescale = 34;
-        break;
+		UBRR0L = 207;
 	case UART_19200:
-		baudprescale = 103;
+		UBRR0L = 103;
 		break;
-    default:
-        baudprescale = 0;
+	case UART_38400:
+		UBRR0L = 51;
+		break;
+	case UART_57600:
+		UBRR0L = 34;
+		break;
+	default:
+		UBRR0L = 103;
+		break;
+	}
+
+    uart_buffer_index = 0;
+}
+
+/**
+ * Transmit one byte
+ * NOTE: This function uses busy waiting
+ *
+ * @param byte data to trasmit
+ */
+void uart_putchar(uint8_t byte)
+{
+    /* wait for empty transmit buffer */
+    while (!( UCSR0A & (1 << UDRE0)));
+
+    /* Put data into buffer, sends the data */
+    UDR0 = byte;
+}
+
+/**
+ * Receive a single byte from the receive buffer
+ *
+ * @param index
+ *
+ * @return
+ */
+uint8_t uart_get_byte(int index)
+{
+    if (index < UART_BUFFER_SIZE)
+    {
+        return uart_buffer[index];
     }
-	
-	switch(cs){
-		case CONTROL_UART_1:
-			rxn1 = 0;
-			uart_rx1 = 0;
-			UBRR0H = 0;
-			UBRR0L = (uint8_t) baudprescale;
-
-			/* Enable receiver and transmitter */
-			UCSR0B = _BV(RXEN0)|_BV(TXEN0) | _BV(RXCIE0);
-
-			/* Set frame format: 8data, 2stop bit */
-			UCSR0C = (1<<USBS0)|(1<<UCSZ00) | _BV(UCSZ01); 
-		break;
-		case CONTROL_UART_2:
-			rxn2 = 0;
-			uart_rx2 = 0;
-			UBRR2H = 0;
-			UBRR2L= (uint8_t) baudprescale;
-
-			/* Enable receiver and transmitter */
-			UCSR0B = _BV(RXEN0)|_BV(TXEN0) | _BV(RXCIE0);
-
-			/* Set frame format: 8data, 2stop bit */
-			UCSR0C = (1<<USBS0)|(1<<UCSZ00) | _BV(UCSZ01);
-		break;
-	}
-	
-	
+    return 0;
 }
 
-uint8_t uart_bytes_received(UART_CONTROL cs)
+/**
+ * Get the number of bytes received on UART
+ *
+ * @return number of bytes received on UART
+ */
+uint8_t uart_bytes_received(void)
 {
-	switch(cs){
-		case CONTROL_UART_1:
-		return rxn1;
-		break;
-		case CONTROL_UART_2:
-		return rxn2;
-		break;
-	}
-	return 0;
+    return uart_buffer_index;
 }
-
-void uart_reset_receive(UART_CONTROL cs)
-{
-	switch(cs){
-		case CONTROL_UART_1:
-		rxn1 = 0;
-		break;
-		case CONTROL_UART_2:
-		rxn2 = 0;
-		break;
-	}
-}
-
-/*
- Interrupt Service Routine (ISR):
-*/
-
-ISR(USART0_RX_vect)
-{
-	while ( !(UCSR0A & (1<<RXC0)) );
-
-	//PORTB = ~_BV(PINB1);
-
-	rx1[rxn1] = UDR0;
-	rxn1 = (rxn1 + 1) % UART_BUFFER_SIZE;
-	uart_rx1 = 1; // notify main of receipt of data.
-	//PORTB = PORTB | _BV(PINB1);
-}
-/*
- Interrupt Service Routine (ISR):
-*/
-
-ISR(USART2_RX_vect)
-{
-	while ( !(UCSR2A & (1<<RXC2)) );
-
-	//PORTB = ~_BV(PINB1);
-
-	rx2[rxn2] = UDR2;
-	rxn2 = (rxn2 + 1) % UART_BUFFER_SIZE;
-	uart_rx2 = 1; // notify main of receipt of data.
-	//PORTB = PORTB | _BV(PINB1);
-}
-
 
 /**
  * Prepares UART to receive another payload
  *
  */
-
-void uart_print(uint8_t* output, int size, UART_CONTROL cs)
+void uart_reset_receive(void)
 {
-	uint8_t i;
-	for (i = 0; i < size && output[i] != 0; i++)
-	{
-		uart_putchar(output[i], cs);
-	}
+    uart_buffer_index = 0;
 }
+
+/**
+ * UART receive byte ISR
+ */
+ISR(USART0_RX_vect)
+{
+	while(!(UCSR0A & (1<<RXC0)));
+    uart_buffer[uart_buffer_index] = UDR0;
+    uart_buffer_index = (uart_buffer_index + 1) % UART_BUFFER_SIZE;
+}
+
+
 
 
 

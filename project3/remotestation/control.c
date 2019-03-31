@@ -29,35 +29,34 @@ int main()
 	DDRL = 0xFF;
 	PORTL = 0xFF;
 	DDRB = 0xFF;
-	uart_init(UART_9600, CONTROL_UART_2);
+	uart_init(UART_9600);//, CONTROL_UART_2);
 
-	//Roomba_Init(); // initialize the roomba
+	Roomba_Init(); // initialize the roomba
 
 	sei();
 	
 	while(1){
-		while (uart_bytes_received(CONTROL_UART_2) != 1);
-		char byte1 = uart_get_byte(0,CONTROL_UART_2);
+		while (uart_bytes_received() < 1);
+		char byte1 = uart_get_byte(0);
+		
 		if(byte1 == 0) {
 			PORTB = 0b00100000;
-	}
-		PORTB = 0b00000000;
+		}
  		if(byte1 == 2) {
- 			PORTB = 0b01000000;
-			 
-			 uart_putchar(byte1, CONTROL_UART_2);
+ 				PORTB = 0b10000000;
  		}
+ 		uart_putchar(byte1);
  		if(byte1 == 1){PORTB = 0b00000000;}
-		uart_reset_receive(CONTROL_UART_2);
+		uart_reset_receive();
 	}
 
-	// UART test - drive straight forward at 100 mm/s for 0.5 second
-// 	Roomba_Drive(100, 0x8000);
-// 	
-// 		//_delay_ms(500);
-// 	
-// 		//Roomba_Drive(0, 0);
-// 		
+// 	UART test - drive straight forward at 100 mm/s for 0.5 second
+// 			Roomba_Drive(100, 0x8000);
+// 			
+// 				_delay_ms(500);
+// 			
+// 				Roomba_Drive(0, 0);
+		
 
 
 	return 0;
