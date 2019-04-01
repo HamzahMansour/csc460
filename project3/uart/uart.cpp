@@ -161,6 +161,19 @@ void uart_reset_receive(UART_CHANNEL cs)
 	}
 }
 
+void uart_set_front(int index, UART_CHANNEL cs){
+	switch(cs){
+		case(CH_1):
+		uart_buffer_1[0] = uart_buffer_1[uart_buffer_index_1 - 1];
+		uart_buffer_index_1 = 1;
+		break;
+		case(CH_2):
+		uart_buffer_2[0] = uart_buffer_2[uart_buffer_index_2 - 1];
+		uart_buffer_index_2 = 1;
+		break;
+	}
+}
+
 /**
  * UART receive byte ISR
  */
