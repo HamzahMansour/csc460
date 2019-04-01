@@ -26,7 +26,7 @@
  }
 
  /*source: https://github.com/processing/processing/blob/be7e25187b289f9bfa622113c400e26dd76dc89b/core/src/processing/core/PApplet.java#L5061 */
- static int map(float value, float start1, float stop1, float start2, float stop2) {
+ int map(float value, float start1, float stop1, float start2, float stop2) {
 	 int outgoing = start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1));
 	 return outgoing;
  }

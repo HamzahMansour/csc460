@@ -10,8 +10,8 @@
 #define AVRUTILITIES_H_
 #include <stdint.h>
 
-static int map(float value, float start1, float stop1, float start2, float stop2);
+void adc_init(void);
 uint16_t read_adc(uint8_t channel);
-static int map(float value, float start1, float stop1, float start2, float stop2);
+int map(float value, float start1, float stop1, float start2, float stop2);
 
 #endif /* AVRUTILITIES_H_ */

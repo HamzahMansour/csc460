@@ -15,9 +15,17 @@
 #define     clock8MHz()    cli(); CLKPR = _BV(CLKPCE); CLKPR = 0x00; sei();
 // global argument lists
 LinkedList<arg_t> LazerShotList;
-LinkedList<arg_t> temp;
-bool lazer = 0;
+LinkedList<arg_t> panList;
+LinkedList<arg_t> tiltList;
+LinkedList<arg_t> driveList;
 
+//global variables
+int oldPanSpeed = 0;
+int oldTiltSpeed = 0;
+int velocityChange = 0;
+int radiusChange = 0;
+int oldVelocityChange = 0;
+int oldVelocitySpeed = 0;
 
 // not a periodic action
 void lazerShot(LinkedList<arg_t> &obj){
@@ -33,8 +41,8 @@ void lazerShot(LinkedList<arg_t> &obj){
 // happens in the idle loop needs to be fast
 void sampleInputs(){
 	if(uart_bytes_received(CH_2) < 2) return;
-	int i = 0;
-	for(; i + 1 < uart_bytes_received(CH_2); i += 2){
+	int indx;
+	for(int i = 0; i + 1 < uart_bytes_received(CH_2); i += 2){
 		int v0 = uart_get_byte(i,CH_2);
 		int v1 = uart_get_byte(i+1, CH_2);
 		
@@ -43,15 +51,28 @@ void sampleInputs(){
 			  switch(v1){
 				  case(0):
 					LazerShotList.front()->pin = 0;
+					Schedule_OneshotTask(10,10,lazerShot, 0, LazerShotList);
 					break;
 				   case(1):
 					LazerShotList.front()->pin = 1;
+					Schedule_OneshotTask(10,10,lazerShot, 0, LazerShotList);
 					break;
 			  }
 			break;
-			case(1):
+			case(1):// pan
+				//speedpan = map()
+			break;
+			case(2)://tilt
+			
+			break;
+			case(3):// velocity
+			
+			break;
+			case(4)://radius
+			
 			break;
 		}
+		indx = i+1;
 	}
 	
 }
@@ -104,7 +125,13 @@ void setup()
 	Scheduler_Init();
 	
 	arg_t lazer{'a', 0};
+	arg_t pan {'a', 2050};
+	arg_t tilt {'b', 950};
+	
 	LazerShotList.push(lazer);
+	panList.push(pan);
+	tiltList.push(tilt);
+	adc_init();
 	
 	//Scheduler_StartPeriodicTask(10, 200, periodicTest, temp);
 	
