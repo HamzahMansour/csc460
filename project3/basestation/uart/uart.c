@@ -6,103 +6,144 @@
  * @brief  UART Driver targetted for the AT90USB1287
  *
  */
-#include <avr/io.h>				
-#include <avr/interrupt.h>		// ISR handling.
 #include "uart.h"
-#define F_CPU 8000000UL
+
+#define F_CPU 16000000UL
 
 #ifndef F_CPU
 #warning "F_CPU not defined for uart.c."
 #define F_CPU 11059200UL
 #endif
 
-/*
- Global Variables:
- Variables appearing in both ISR/Main are defined as 'volatile'.
-*/
-static volatile int rxn; // buffer 'element' counter.
-static volatile char rx[UART_BUFFER_SIZE]; // buffer of 'char'.
+static volatile uint8_t uart_buffer[UART_BUFFER_SIZE];
+static volatile uint8_t uart_buffer_index;
 
-void uart_putchar (char c)
+/**
+ * Initalize UART
+ *
+ */
+void uart_init(UART_BPS bitrate)
 {
-	cli();
-	while ( !( UCSR0A & (1<<UDRE0)) ); // Wait for empty transmit buffer           
-	UDR0 = c;  // Putting data into the buffer, forces transmission
-	sei();
-}
+	UCSR0A = _BV(U2X1);
+	UCSR0B = _BV(RXEN0) | _BV(TXEN0) | _BV(RXCIE0);
+	UCSR0C = _BV(UCSZ01) | _BV(UCSZ00);
 
-char uart_get_byte (int index)
-{
-	if (index < UART_BUFFER_SIZE) {
-		return rx[index];
-	}
-	return 0;
-}
+	UBRR0H = 0;	// for any speed >= 9600 bps, the UBBR value fits in the low byte.
 
-void uart_putstr(char *s)
-{
-	while(*s) uart_putchar(*s++);
-	
-}
-
-void uart_init(UART_BPS bitrate){
-
-	DDRB = 0xff;
-	PORTB = 0xff;
-
-	rxn = 0;
-	uart_rx = 0;
-
-	/* Set baud rate */
-	UBRR0H = 0;
-	switch (bitrate) {
-    case UART_38400:
-	    UBRR0L = 12;
+	// See the appropriate AVR hardware specification for a table of UBBR values at different
+	// clock speeds.
+	switch (bitrate)
+	{
+#if F_CPU==8000000UL
+	case UART_19200:
+		UBRR0L = 51;
 		break;
-    case UART_57600:
-        UBRR0L = 6;
-        break;
-    default:
-        UBRR0L = 6;
-    }
+	case UART_38400:
+		UBRR0L = 25;
+		break;
+	case UART_57600:
+		UBRR0L = 16;
+		break;
+	default:
+		UBRR0L = 51;
+#elif F_CPU==16000000UL
+	case UART_9600:
+		UBRR0L = 207;
+		break;
+	case UART_19200:
+		UBRR0L = 103;
+		break;
+	case UART_38400:
+		UBRR0L = 51;
+		break;
+	case UART_57600:
+		UBRR0L = 34;
+		break;
+	default:
+		UBRR0L = 103;
+#elif F_CPU==18432000UL
+	case UART_19200:
+		UBRR0L = 119;
+		break;
+	case UART_38400:
+		UBRR0L = 59;
+		break;
+	case UART_57600:
+		UBRR0L = 39;
+		break;
+	default:
+		UBRR0L = 119;
+		break;
+#else
+#warning "F_CPU undefined or not supported in uart.c."
+	default:
+		UBRR0L = 71;
+		break;
+#endif
+	}
 
-	/* Enable receiver and transmitter */
-	UCSR0B = _BV(RXEN0)|_BV(TXEN0) | _BV(RXCIE0);
-
-	/* Set frame format: 8data, 2stop bit */
-	UCSR0C = (1<<USBS0)|(1<<UCSZ00) | _BV(UCSZ01);
+    uart_buffer_index = 0;
 }
 
+/**
+ * Transmit one byte
+ * NOTE: This function uses busy waiting
+ *
+ * @param byte data to trasmit
+ */
+void uart_putchar(uint8_t byte)
+{
+    /* wait for empty transmit buffer */
+    while (!( UCSR0A & (1 << UDRE0)));
+
+    /* Put data into buffer, sends the data */
+    UDR0 = byte;
+}
+
+/**
+ * Receive a single byte from the receive buffer
+ *
+ * @param index
+ *
+ * @return
+ */
+uint8_t uart_get_byte(int index)
+{
+    if (index < UART_BUFFER_SIZE)
+    {
+        return uart_buffer[index];
+    }
+    return 0;
+}
+
+/**
+ * Get the number of bytes received on UART
+ *
+ * @return number of bytes received on UART
+ */
 uint8_t uart_bytes_received(void)
 {
-	return rxn;
-}
-
-void uart_reset_receive(void)
-{
-	rxn = 0;
-}
-
-/*
- Interrupt Service Routine (ISR):
-*/
-
-ISR(USART0_RX_vect)
-{
-	while ( !(UCSR0A & (1<<RXC0)) );
-
-	//PORTB = ~_BV(PINB1);
-
-	rx[rxn] = UDR0;
-	rxn = (rxn + 1) % UART_BUFFER_SIZE;
-	uart_rx = 1; // notify main of receipt of data.
-	//PORTB = PORTB | _BV(PINB1);
+    return uart_buffer_index;
 }
 
 /**
  * Prepares UART to receive another payload
  *
  */
+void uart_reset_receive(void)
+{
+    uart_buffer_index = 0;
+}
+
+/**
+ * UART receive byte ISR
+ */
+ISR(USART0_RX_vect)
+{
+	while(!(UCSR0A & (1<<RXC0)));
+    uart_buffer[uart_buffer_index] = UDR0;
+    uart_buffer_index = (uart_buffer_index + 1) % UART_BUFFER_SIZE;
+}
 
 void uart_print(uint8_t* output, int size)
 {
@@ -112,6 +153,3 @@ void uart_print(uint8_t* output, int size)
 		uart_putchar(output[i]);
 	}
 }
-
-
-
