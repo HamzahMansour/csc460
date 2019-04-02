@@ -12,7 +12,6 @@
 
 #include <avr/interrupt.h>
 #include <stdint.h>
-#define F_CPU 8000000UL
 
 typedef enum _uart_bps
 {

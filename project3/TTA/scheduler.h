@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 ///Up to this many tasks can be run, in addition to the idle task
-#define MAXTASKS	8
+#define MAXTASKS	16
 #include <stdint.h>
 
 typedef struct {

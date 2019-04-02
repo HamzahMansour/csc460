@@ -1,5 +1,5 @@
 #include <stdio.h>
-
+#include <stdint.h>
 #include "lcd.h"
 
 uint8_t lcd_pos = LCD_LINE1;

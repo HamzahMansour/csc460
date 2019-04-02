@@ -14,15 +14,17 @@
    B. Bird - 07/20/2018
 */
 
-#ifndef CSC230_H
-#define CSC230_H
-
 //Define the clock speed of the CPU to be 16Mhz
 #define F_CPU 16000000UL
 
 #include <avr/interrupt.h>
 #include <avr/io.h>
 #include <util/delay.h>
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // Due to Peter Dannegger
 // Macro to access particular bits of a 1-byte value like variables
@@ -83,4 +85,6 @@ static inline void lcd_xy(uint8_t x, uint8_t y) {
     lcd_command(x + ((y == 1) ? LCD_LINE2 : LCD_LINE1));
 }
 
+#ifdef __cplusplus
+}
 #endif

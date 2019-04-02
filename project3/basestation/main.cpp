@@ -1,15 +1,21 @@
-// main.c UVic CSC460 Spring 2019 Team 13 
-#define F_CPU 16000000UL	
+// main.cpp UVic CSC460 Spring 2019 Team 13
+#define F_CPU 16000000UL
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
 #include <stdio.h>
+#include <stddef.h>
+
+#include "string.h"
 #include "uart/uart.h"
 #include "lcd/lcd.h"
-/*#include "schedule/scheduler.h"*/
+#include "TTA/scheduler.h"
+#include "util/AVRUtilities.h"
+
+LinkedList<arg_t> obj;
+LinkedList<arg_t> obj1;
 
 #define     clock8MHz()    cli(); CLKPR = _BV(CLKPCE); CLKPR = 0x00; sei();
-volatile uint8_t rxflag = 0;
 
 typedef enum print_type
 {
@@ -27,27 +33,27 @@ uint8_t joystick2X_PIN = 12;
 uint8_t joystick2Y_PIN = 13;
 
 // input values
-uint16_t joystick1X = 513;
-uint16_t joystick1Y = 507;
-uint8_t joystick1Z = 1;
-uint16_t joystick2X = 493;
-uint16_t joystick2Y = 506;
-uint8_t joystick2Z = 1;
+int joystick1X = 513;
+int joystick1Y = 507;
+int joystick1Z = 1;
+int joystick2X = 493;
+int joystick2Y = 506;
+int joystick2Z = 1;
 
 // LCD Shield values
 int buttonPress = 0;
-int printType = INPUT;
+int printType = COMPETE;
 char printfStr[16];
 
 // 2B bluetooth communication protocol
 char sendType = 0;
 char sendByte = 0;
-	// sendType, sendByte:
-	// 0: laser - 0: off, 1: on
-	// 1: pan - 3:84
-	// 2: tilt - 1:22
-	// 3: velocity - 1:100
-	// 4: radius - 1:100
+// sendType, sendByte:
+// 	0: laser - 0: off, 1: on
+// 	1: pan - 3:84
+// 	2: tilt - 1:22
+// 	3: velocity - 1:100
+// 	4: radius - 1:100
 
 // output values
 int panSpeed = 0, maxAdjustPan = 40;
@@ -56,51 +62,30 @@ int velSpeed = 0, maxAdjustVel = 50;
 int radSpeed = 0, maxAdjustRad = 50;
 
 // from bluetooth
-int state;
-int timeLeft;
-int shot;
+int state = 1;
+int timeLeft = 30;
+int shot = 0;
+int energy = 100;
 
- /*source: https://bennthomsen.wordpress.com/arduino/peripherals/analogue-input/ */
-void adc_init(void){
-	//16MHz/128 = 125kHz the ADC reference clock
-	ADCSRA |= ((1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0));
-	ADMUX |= (1<<REFS0);       //Set Voltage reference to Avcc (5v)
-	ADCSRA |= (1<<ADEN);       //Turn on ADC
-	ADCSRA |= (1<<ADSC);      //Do an initial conversion
-}
-
-uint16_t read_adc(uint8_t channel){
-	ADMUX &= 0xE0;           //Clear bits MUX0-4
-	ADMUX |= channel&0x07;   //Defines the new ADC channel to be read by setting bits MUX0-2
-	ADCSRB = channel&(1<<3); //Set MUX5
-	ADCSRA |= (1<<ADSC);      //Starts a new conversion
-	while(ADCSRA & (1<<ADSC));  //Wait until the conversion is done
-	return ADCW;         //Returns the ADC value of the chosen channel
-}
-
- /*source: https://github.com/processing/processing/blob/be7e25187b289f9bfa622113c400e26dd76dc89b/core/src/processing/core/PApplet.java#L5061 */
- static int map(float value, float start1, float stop1, float start2, float stop2) {
-	  int outgoing = start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1));
-	  return outgoing;
- }
-
-void joystickRead(){
+void joystickRead(LinkedList<arg_t> &obj){
 	joystick1X = read_adc(joystick1X_PIN); // do each twice ?
-	joystick1Y = read_adc(joystick1Y_PIN); 
+	joystick1Y = read_adc(joystick1Y_PIN);
 	joystick1Z = 1>>(PINA & (1<<PINA0));
 	joystick2X = read_adc(joystick2X_PIN);
 	joystick2Y = read_adc(joystick2Y_PIN);
 	joystick2Z = 1>>(PINA & (1<<PINA1));
 }
 
-void lcdPrint(){
+void lcdPrint(LinkedList<arg_t> &obj){
 	if(buttonPress == 5){ // if SELECT has been pressed
 		if(printType == INPUT) printType = OUTPUT;
 		else if(printType == OUTPUT) printType = COMPETE;
 		else printType = INPUT;
 		buttonPress = 0; // reset button state
 	}
+	
 	lcd_blank(32); // clear lcd first
+	
 	switch(printType){
 		case INPUT:
 			sprintf(printfStr,"JOY1X%4dY%4dZ%1d",joystick1X,joystick1Y,joystick1Z);
@@ -115,20 +100,20 @@ void lcdPrint(){
 			lcd_puts(printfStr);
 			break;
 		case COMPETE:
-			sprintf(printfStr,"ROOMBA STATE/ IR");
+			sprintf(printfStr,"STATE %1d  TIME %2d",state,timeLeft);
 			lcd_puts(printfStr);
-			sprintf(printfStr,"ENERGY LEFT     ");
+			sprintf(printfStr,"LS %1d  ENERGY %3d",shot,energy);
 			lcd_puts(printfStr);
-			break;			
+			break;
 		default:
 			lcd_blank(32);
 			break;
-	}	
+	}
 }
 
- /*source: https://www.dfrobot.com/wiki/index.php/LCD_KeyPad_Shield_For_Arduino_SKU:_DFR0009 */
-void lcdButtons(){
-	int buttonReading = read_adc(0); 
+/* source: https://www.dfrobot.com/wiki/index.php/LCD_KeyPad_Shield_For_Arduino_SKU:_DFR0009 */
+void lcdButtons(LinkedList<arg_t> &obj){
+	int buttonReading = read_adc(0);
 	if (buttonReading < 50) buttonPress = 1; //RIGHT
 	else if (buttonReading < 250) buttonPress = 2; //UP
 	else if (buttonReading < 450) buttonPress = 3; //DOWN
@@ -137,25 +122,24 @@ void lcdButtons(){
 	else buttonPress = 0;
 }
 
-// void writeTwo(char a, char b){
-// 	uart_putchar(a, CH_2);
-// 	uart_putchar(b, CH_2);
-// }
-
 void sendBluetooth(){
 	uart_putchar(sendType, CH_2);
 	uart_putchar(sendByte, CH_2);
 }
 
-void laserHandle(){
+void readBluetooth(LinkedList<arg_t> &obj){
+	if(uart_bytes_received(CH_2) < 2) return;	
+}
+
+void laserHandle(LinkedList<arg_t> &obj){
 	sendType = 0;
 	sendByte = joystick1Z;
-// 	if(joystick1Z == 0) sendByte = 0; //laser off
-// 	else if(joystick1Z > 0) sendByte = 1; //laser on
+	// 	if(joystick1Z == 0) sendByte = 0; //laser off
+	// 	else if(joystick1Z > 0) sendByte = 1; //laser on
 	sendBluetooth(); // make into a separate one-shot task?
 }
 
-void panHandle(){
+void panHandle(LinkedList<arg_t> &obj){
 	int oldSpeed = panSpeed;
 	if(joystick1Y > 540){
 		panSpeed = map(joystick1Y, 1021, 540, -maxAdjustPan, 0);
@@ -168,13 +152,13 @@ void panHandle(){
 	}
 
 	if(panSpeed != oldSpeed){
-		sendType = 1;		
+		sendType = 1;
 		sendByte = map(panSpeed, -maxAdjustPan, maxAdjustPan-1, 3, 84);
 		sendBluetooth();
 	}
 }
 
-void tiltHandle(){
+void tiltHandle(LinkedList<arg_t> &obj){
 	int oldSpeed = tiltSpeed;
 
 	if(joystick1X > 555){
@@ -194,7 +178,7 @@ void tiltHandle(){
 	}
 }
 
-void velocityHandle(){
+void velocityHandle(LinkedList<arg_t> &obj){
 	int oldVelocity = velSpeed;
 	
 	if(joystick2X > 520){
@@ -214,7 +198,7 @@ void velocityHandle(){
 	}
 }
 
-void radiusHandle(){
+void radiusHandle(LinkedList<arg_t> &obj){
 	int oldRadius = radSpeed;
 	
 	if(joystick2Y > 520){
@@ -234,8 +218,21 @@ void radiusHandle(){
 	}
 }
 
-int main()
+void idle(uint32_t idle_time)
 {
+	Scheduler_Dispatch_Oneshot();
+}
+
+void loop()
+{
+	uint32_t idle_time = Scheduler_Dispatch_Periodic();
+	if (idle_time)
+	{
+		idle(idle_time);
+	}
+}
+
+void setup(){
 	clock8MHz();
 	cli();
 	DDRK = 0x00; // set port K as input (analog - using pins 4,5,6,7)
@@ -245,20 +242,26 @@ int main()
 	adc_init();
 	lcd_init();
 	uart_init(UART_9600, CH_2);
-	sei();
+	Scheduler_Init();
 	
+	Scheduler_StartPeriodicTask(0, 50, joystickRead, obj);
+	Scheduler_StartPeriodicTask(0, 50, lcdButtons, obj);
+	Scheduler_StartPeriodicTask(0, 100, lcdPrint, obj);
+	Scheduler_StartPeriodicTask(0, 50, laserHandle, obj);
+	Scheduler_StartPeriodicTask(0, 50, panHandle, obj);
+	Scheduler_StartPeriodicTask(0, 50, tiltHandle, obj);
+	Scheduler_StartPeriodicTask(0, 50, velocityHandle, obj);
+	Scheduler_StartPeriodicTask(0, 50, radiusHandle, obj);
+	Scheduler_StartPeriodicTask(0, 50, readBluetooth, obj);
+	
+	sei();
+}
+
+int main(){	
+	setup();
 	for(;;){
-		// these will be periodic tasks
-		joystickRead();
-		lcdButtons();
-		lcdPrint();
-		laserHandle();
-		panHandle();
-		tiltHandle();
-		velocityHandle();
-		radiusHandle();
-		
-		_delay_ms(50);
+		loop();		
 	}
+	for(;;);
 	return 0;
 }
