@@ -53,13 +53,13 @@ bool lastpin = 0;
 int lastShotTime = 0;
 // not a periodic action
 void lazerShot(LinkedList<arg_t> &obj){
-	if(obj.front()->pin && !lastpin){
+	if(!lastpin && obj.front()->pin){
+		lastpin = 1;
+		PORTB = 0b01000000;
 		// get current tic use that to see how long it's been and shut off after 2 seconds
 		lastShotTime = get_time();
-		PORTB = 0b01000000;
-		lastpin = 1;
 	}
-	else if(lastpin){
+	else if(lastpin && !obj.front()->pin){
 		ticksLeft -= get_time() - lastShotTime;
 		PORTB = 0b00000000;
 		lastpin = 0;
@@ -73,7 +73,6 @@ void servoMove(LinkedList<arg_t> &obj){
 // polling task to change the roomba velocity
 // occurs every 2 seconds
 void roombaMove(LinkedList<arg_t> &obj){
-	
 }
 
 // send state updates every 10 ms
@@ -81,6 +80,12 @@ int lastStateChange = 0;
 int lastTicksleft = ticksLeft;
 //update the states to the remote periodic task
 void StateUpdate(LinkedList<arg_t> &obj){
+	
+	if(((get_time() - lastShotTime) >= 1838 && lastpin) 
+		|| (ticksLeft <= 0 && lastpin)){
+		LazerShotList.front()->pin = 0;
+		Schedule_OneshotTask(10,10,lazerShot, 0, LazerShotList);
+	}
 	
 	if(lastStateChange % 10 == 0){
 		write2bytes(1, map(lastStateChange, 0, 300, 0, 29));
@@ -120,11 +125,11 @@ void sampleInputs(){
 		  switch(v1){
 				case(0):
 				LazerShotList.front()->pin = 0;
-				Schedule_OneshotTask(10,10,lazerShot, 0, LazerShotList);
+				if(ticksLeft > 0) Schedule_OneshotTask(10,10,lazerShot, 0, LazerShotList);
 				break;
 				case(1):
 				LazerShotList.front()->pin = 1;
-				Schedule_OneshotTask(10,10,lazerShot, 0, LazerShotList);
+				if(ticksLeft > 0) Schedule_OneshotTask(10,10,lazerShot, 0, LazerShotList);
 				break;
 				}
 			break;
@@ -210,7 +215,7 @@ void setup()
 	// start the schedules
 	Scheduler_StartPeriodicTask(0, 27570, changeState, stateList); // 30 seconds
 	Scheduler_StartPeriodicTask(10, 92, StateUpdate, updateList); // 0.1 seconds
-	Scheduler_StartPeriodicTask(20, 1840, roombaMove, roombaList);  // 2 seconds
+	Scheduler_StartPeriodicTask(20, 1838, roombaMove, roombaList);  // 2 seconds
 	Scheduler_StartPeriodicTask(30, 184, servoMove, servoList);  // 0.2 seconds
 	
 }
