@@ -34,7 +34,6 @@ int map(float value, float start1, float stop1, float start2, float stop2) {
 	 return outgoing;
  }
 
-
 void PWM_Init_Pan(){
 	cli();
 	DDRE |= (1<< PE5);

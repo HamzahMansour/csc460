@@ -26,10 +26,14 @@ int speedPan = 0;
 int speedTilt = 0;
 int oldPanSpeed = 0;
 int oldTiltSpeed = 0;
+int pan = 2050;
+int tilt = 950;
 int velocityChange = 0;
 int radiusChange = 0;
 int oldVelocityChange = 0;
-int oldVelocitySpeed = 0;
+int oldradiusChange = 0;
+int radius = 0;
+int velocity = 0;
 int ticksLeft = 9190; // available time for shooting
 
 // send info
@@ -66,13 +70,56 @@ void lazerShot(LinkedList<arg_t> &obj){
 	}
 }
 
+void speedCalculation(int* position, int* newVal, int* oldVal, int max_adjust, int topVal, int bottomVal){
+	int tempt = *newVal;
+	if( *oldVal > tempt && *oldVal - tempt > max_adjust){
+		tempt = *oldVal - max_adjust;
+	}
+	else if(*oldVal < tempt && *oldVal - tempt < -max_adjust){
+		tempt = *oldVal + max_adjust;
+	}
+	if(*position + tempt > topVal || *position + tempt < bottomVal){
+		tempt = 0;
+	}
+	*oldVal = tempt;
+	if(tempt != 0){
+		*position += tempt;
+		if(*position >= topVal)
+			*position = topVal;
+		if(*position <= bottomVal)
+			*position = bottomVal;
+	}
+}
+
 void servoMove(LinkedList<arg_t> &obj){
+	//calculate pan and tilt
+	speedCalculation(&pan, &speedPan, &oldPanSpeed, 5, 2100, 750);
+	speedCalculation(&tilt, &speedTilt, &oldTiltSpeed, 2, 1000, 500);
 	
+	PWM_write_Pan(pan);
+	PWM_write_Tilt(tilt);
 }
 
 // polling task to change the roomba velocity
 // occurs every 2 seconds
 void roombaMove(LinkedList<arg_t> &obj){
+	// calculate velocity and radius
+	speedCalculation(&radius, &radiusChange, &oldradiusChange, 50, 2000, -2000);
+	speedCalculation(&velocity, &velocityChange, &oldVelocityChange , 20, -500, 500);
+	int tempR = radius;
+	int tempV = velocity;
+	
+	if(radius == 0 && velocity != 0){
+		tempR = 0x8000;
+	}
+	//set state of velocity
+	if(velocity == 0){
+		if (radius > 0) radius = 1;
+		if (radius < 0) radius = -1;
+	}
+	
+	Roomba_Drive(tempV, tempR);
+	//
 }
 
 // send state updates every 10 ms
@@ -118,8 +165,6 @@ void sampleInputs(){
 	int v0 = uart_get_byte(0,CH_2);
 	int v1 = uart_get_byte(1,CH_2);
 	
-	if(uart_bytes_received(CH_2) > 2) uart_set_front(2, CH_2);
-	
 	switch(v0){
 		case(0)://lazer
 		  switch(v1){
@@ -133,21 +178,24 @@ void sampleInputs(){
 				break;
 				}
 			break;
-				case(1):// pan
-				speedPan = map(v1, 0, 81, -40, 40);
+		case(1):// pan
+			speedPan = map(v1, 0, 81, 80, -80);
 			break;
-				case(2)://tilt
-				speedTilt = map(v1, 0, 21, -10, 10);
+		case(2)://tilt
+			speedTilt = map(v1, 0, 21, -20, 20);
 			break;
-				case(3):// velocity range -500 to 500
-				velocityChange = map (v1, 0, 100, -50, 50); // making max change 50
+		case(3):// velocity range -500 to 500
+			velocityChange = map (v1, 0, 100, -50, 50); // making max change 50
 			break; 			
-				case(4):// radius range -2000 2000,
+		case(4):// radius range -2000 2000,
 						//straight 32768 or hex 8000, spin in place -1 cw 1 ccw
-				radiusChange = map(v1, 0, 100, -200, 200);
+			radiusChange = map(v1, 0, 100, -200, 200);
 			break;
 	}
-	uart_reset_receive(CH_2);
+	if(uart_bytes_received(CH_2) > 2) 
+		uart_set_front(2, CH_2);
+	else
+		uart_reset_receive(CH_2);
 	
 }
 
@@ -183,20 +231,26 @@ void setup()
 	DDRL = 0xFF;
 	PORTL = 0xFF;
 	DDRB = 0xFF;
+	
+	// TX2 RX2
 	uart_init(UART_9600, CH_2);
-
+	
+	//dd is digital 32, TX1 RX1
 	Roomba_Init(); // initialize the roomba
 	
+	// pin3
 	PWM_Init_Pan();
+	// pin8
 	PWM_Init_Tilt();
+	
 	sei();
 	
-// 	// 	UART test - drive straight forward at 100 mm/s for 0.5 second
-// 	Roomba_Drive(100, 0x8000);
-// 		
-// 	_delay_ms(500);
-// 				
-// 	Roomba_Drive(0, 0);
+	// 	UART test - drive straight forward at 100 mm/s for 0.5 second
+	Roomba_Drive(100, 0x8000);
+		
+	_delay_ms(500);
+				
+	Roomba_Drive(0, 0);
 	
 	Scheduler_Init();
 	
@@ -215,17 +269,18 @@ void setup()
 	// start the schedules
 	Scheduler_StartPeriodicTask(0, 27570, changeState, stateList); // 30 seconds
 	Scheduler_StartPeriodicTask(10, 92, StateUpdate, updateList); // 0.1 seconds
-	Scheduler_StartPeriodicTask(20, 1838, roombaMove, roombaList);  // 2 seconds
-	Scheduler_StartPeriodicTask(30, 184, servoMove, servoList);  // 0.2 seconds
+	//Scheduler_StartPeriodicTask(21, 184, roombaMove, roombaList);  // 0.2 seconds
+	Scheduler_StartPeriodicTask(15, 46, servoMove, servoList);	// 0.05 seconds
 	
 }
 
 
 int main(){
 	setup();
-	for (;;){
-		loop();
-	}
+	Roomba_Drive(100, 0x8000);
+ 	for (;;){
+ 		loop();
+ 	}
 	for (;;);
 	return 0;
 }

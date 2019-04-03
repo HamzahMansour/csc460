@@ -7,8 +7,6 @@
  */
 #include "uart.h"
 
-#define F_CPU 8000000UL
-
 #ifndef F_CPU
 #warning "F_CPU not defined for uart.c."
 #define F_CPU 11059200UL

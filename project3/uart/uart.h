@@ -29,6 +29,7 @@ typedef enum _uart_channel
 } UART_CHANNEL;
 
 #define UART_BUFFER_SIZE    64
+#define F_CPU 8000000UL
 
 void uart_init(UART_BPS bitrate, UART_CHANNEL);
 void uart_putchar(uint8_t byte, UART_CHANNEL);
