@@ -7,6 +7,9 @@
 #include "AVRUtilities.h"
 #include "avr/io.h"
 
+#define cli()		asm volatile ("cli"::)
+#define sei()		asm volatile ("sei"::)
+
  /*source: https://bennthomsen.wordpress.com/arduino/peripherals/analogue-input/ */
  void adc_init(void){
 	 //16MHz/128 = 125kHz the ADC reference clock
@@ -26,26 +29,58 @@
  }
 
  /*source: https://github.com/processing/processing/blob/be7e25187b289f9bfa622113c400e26dd76dc89b/core/src/processing/core/PApplet.java#L5061 */
- int map(float value, float start1, float stop1, float start2, float stop2) {
+int map(float value, float start1, float stop1, float start2, float stop2) {
 	 int outgoing = start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1));
 	 return outgoing;
  }
-// int called = 0;
-// 
-// private void PWM_Init(){
-// 	DDRD |= 0xFF;
-// 	called = 1;
-// }
-// 
-// public void PWM_Init_Lazer(){
-// 	if(!called) PWM_Init();
-// 	TCCR2A |= 1<<WGM21 | 1<<WGM20 | 1<<CS20;
-// 	TCCR2B |= 1<<WGM21 | 1<<WGM20 | 1<<CS20;
-// 	OCR2A = 0;
-// 	OCR2B = 0;
-// 	DDRD |= (1<<PD0)
-// }
-// 
-// public void set_duty_Lazer(int duty){
-// 	
-// }
+
+
+void PWM_Init_Pan(){
+	cli();
+	DDRE |= (1<< PE5);
+	
+	TCCR3A = 0;
+	TCCR3B = 0;
+	TIMSK3 &= ~(1 << OCIE3C);
+	
+	// fast pwm mode
+	TCCR3A |= 1<<WGM31 | 1<<WGM30 | 1<<COM3C1;
+	TCCR3B |= 1<<WGM32 | 1<<WGM33 | 1<<CS01;
+	
+	OCR3A = 40000; // 20000 us period
+	OCR3B = 3000; // target high
+	sei();
+}
+
+void PWM_Init_Tilt(){
+	cli();
+	DDRH |= (1<< PH5);
+	
+	TCCR4A = 0;
+	TCCR4B = 0;
+	TIMSK4 &= ~(1 << OCIE4C);
+	
+	// fast pwm mode
+	TCCR4A |= 1<<WGM41 | 1<<WGM40 | 1<<COM4C1;
+	TCCR4B |= 1<<WGM42 | 1<<WGM43 | 1<<CS01;
+	
+	OCR4A = 40000; // 20000 us period
+	OCR4B = 3000; // target high
+	sei();
+}
+
+void PWM_write_Pan(int us){
+	if(us < 500) us = 500;
+	else if(us > 2500) us = 2500;
+	cli();
+	OCR3C = us*2;
+	sei();
+}
+
+void PWM_write_Tilt(int us){
+	if(us < 500) us = 500;
+	else if(us > 2500) us = 2500;
+	cli();
+	OCR4C = us*2;
+	sei();
+}

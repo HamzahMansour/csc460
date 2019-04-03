@@ -28,7 +28,7 @@ typedef enum _uart_channel
 	CH_2,
 } UART_CHANNEL;
 
-#define UART_BUFFER_SIZE    32
+#define UART_BUFFER_SIZE    64
 
 void uart_init(UART_BPS bitrate, UART_CHANNEL);
 void uart_putchar(uint8_t byte, UART_CHANNEL);
@@ -36,5 +36,6 @@ uint8_t uart_get_byte(int index, UART_CHANNEL);
 uint8_t uart_bytes_received(UART_CHANNEL);
 void uart_reset_receive(UART_CHANNEL);
 void uart_set_front(int, UART_CHANNEL);
+uint8_t uart_pop_channel2();
 #endif
 

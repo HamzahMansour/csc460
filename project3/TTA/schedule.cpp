@@ -57,6 +57,10 @@ void Scheduler_Init()
 	
 }
 
+unsigned long get_time(){
+	return current_tic;
+}
+
 ISR(TIMER1_COMPA_vect){
 	// use the timer to determine the time
 	current_tic++;

@@ -8,7 +8,7 @@
 
 typedef struct {
 	char port;
-	uint8_t pin;
+	uint16_t pin;
 } arg_t;
 
 template <class T> class LinkedList{
@@ -138,5 +138,5 @@ uint32_t min(uint32_t, uint32_t);
 uint32_t Scheduler_Dispatch_Periodic();
 void Scheduler_Dispatch_Oneshot();
 void Scheduler_RunTask_Oneshot(oneshot_t);
-
+unsigned long get_time();
 #endif /* SCHEDULER_H_ */

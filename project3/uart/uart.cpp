@@ -22,6 +22,7 @@ static volatile uint8_t uart_buffer_index_2;
  * Initalize UART
  *
  */
+
 void uart_init(UART_BPS bitrate, UART_CHANNEL cs)
 {
 	int rate;
