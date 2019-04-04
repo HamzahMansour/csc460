@@ -16,10 +16,10 @@
 // global argument lists
 LinkedList<arg_t> LazerShotList;
 LinkedList<arg_t> servoList;
-LinkedList<arg_t> driveList;
 LinkedList<arg_t> roombaList;
 LinkedList<arg_t> stateList;
 LinkedList<arg_t> updateList;
+LinkedList<arg_t> resetList;
 
 //global variables
 int speedPan = 0;
@@ -28,12 +28,13 @@ int oldPanSpeed = 0;
 int oldTiltSpeed = 0;
 int pan = 2050;
 int tilt = 950;
+int velocity = 0;
 int velocityChange = 0;
 int radiusChange = 0;
 int oldVelocityChange = 0;
 int oldradiusChange = 0;
 int ticksLeft = 9190; // available time for shooting
-const float DARK_THRESHOLD = 100000.0;
+const float DARK_THRESHOLD = 400000.0;
 
 // send info
 //		type and range
@@ -58,13 +59,13 @@ int lastShotTime = 0;
 void lazerShot(LinkedList<arg_t> &obj){
 	if(!lastpin && obj.front()->pin){
 		lastpin = 1;
-		PORTB = 0b01000000;
+		PORTB |= 0b01000000;
 		// get current tic use that to see how long it's been and shut off after 2 seconds
 		lastShotTime = get_time();
 	}
 	else if(lastpin && !obj.front()->pin){
 		ticksLeft -= get_time() - lastShotTime;
-		//PORTB = 0b00000000;
+		PORTB ^= 0b01000000;
 		lastpin = 0;
 	}
 }
@@ -105,6 +106,7 @@ void roombaMove(LinkedList<arg_t> &obj){
 	// calculate velocity and radius
 	int tempR = radiusChange;
 	int tempV = velocityChange;
+	
 	//if(stateList.front()->pin == 0) tempV = 0; // in stand-still mode, only spin in place
 
 	// going straight
@@ -115,27 +117,38 @@ void roombaMove(LinkedList<arg_t> &obj){
 	else if(tempV == 0){
 		if (tempR > 0){
 			tempR = 1;
-			tempV = map(radiusChange, -1, -2000, 300, 1);
+			tempV = map(radiusChange, 1, 2000, 300, 1);
 		}
 		if (tempR < 0){
 			tempR = -1;
-			tempV = map(radiusChange, 1, 2000, 300, 1);
+			tempV = map(radiusChange, -1, -2000, 300, 1);
 		}
 	}
 
-	Roomba_Drive(tempV, tempR);
+	Roomba_Drive(-tempV, -tempR);
 }
 
 // send state updates every 10 ms
 int lastStateChange = 0;
 int lastTicksleft = ticksLeft;
+int lastLightOn = 0;
+bool danger = 0;
 //update the states to the remote periodic task
 void StateUpdate(LinkedList<arg_t> &obj){
 	
-	if(((get_time() - lastShotTime) >= 1838 && lastpin) 
+	if(((get_time() - lastShotTime) >= 1900 && lastpin) 
 		|| (ticksLeft <= 0 && lastpin)){
 		LazerShotList.front()->pin = 0;
 		Schedule_OneshotTask(10,10,lazerShot, 0, LazerShotList);
+	}
+	
+	if((get_time() - lastLightOn) >= 1838 && danger){
+		write2bytes(4,1);
+		Roomba_PlaySong(0);
+		// may need to wait
+		_delay_ms(5000);
+		Roomba_ChangeState(PASSIVE_MODE);
+		exit(EXIT_SUCCESS);
 	}
 	
 	if(lastStateChange % 10 == 0){
@@ -162,6 +175,11 @@ void changeState(LinkedList<arg_t> &obj){
 	lastStateChange = 300;
 }
 
+void reset(LinkedList<arg_t> &obj){
+	uart_reset_receive(CH_2);
+}
+
+
 // happens in the idle loop needs to be fast
 void sampleInputs(){
 	if(uart_bytes_received(CH_2) < 2) return;
@@ -171,48 +189,53 @@ void sampleInputs(){
 	
 	switch(v0){
 		case(0)://lazer
-		  switch(v1){
-				case(0):
-				LazerShotList.front()->pin = 0;
-				if(ticksLeft > 0) Schedule_OneshotTask(10,10,lazerShot, 0, LazerShotList);
-				break;
-				case(1):
-				LazerShotList.front()->pin = 1;
-				if(ticksLeft > 0) Schedule_OneshotTask(10,10,lazerShot, 0, LazerShotList);
-				break;
-				}
+		switch(v1){
+			case(0):
+			LazerShotList.front()->pin = 0;
+			if(ticksLeft > 0) Schedule_OneshotTask(10,10,lazerShot, 0, LazerShotList);
 			break;
+			case(1):
+			LazerShotList.front()->pin = 1;
+			if(ticksLeft > 0) Schedule_OneshotTask(10,10,lazerShot, 0, LazerShotList);
+			break;
+		}
+		break;
 		case(1):// pan
-			speedPan = map(v1, 0, 81, 80, -80);
-			break;
+		speedPan = map(v1, 0, 81, 80, -80);
+		break;
 		case(2)://tilt
-			speedTilt = map(v1, 0, 21, -20, 20);
-			break;
+		speedTilt = map(v1, 0, 21, -20, 20);
+		break;
 		case(3):// velocity range -500 to 500
-			velocityChange = map (v1, 0, 100, -300, 300); // making max change 50
-			break; 			
+		velocityChange = map (v1, 0, 100, -300, 300); // making max change 50
+		break;
 		case(4):// radius range -2000 2000,
-						//straight 32768 or hex 8000, spin in place -1 cw 1 ccw
-			if(v1 < 50) radiusChange = map(v1, 0, 49, 1, 2000); 
-			else if(v1 > 50) radiusChange = map(v1, 51, 100, -2000, -1);
-			else if(v1 == 50) radiusChange = 0;
-			break;
+		//straight 32768 or hex 8000, spin in place -1 cw 1 ccw
+		if(v1 < 50) radiusChange = map(v1, 0, 49, 1, 2000);
+		else if(v1 > 50) radiusChange = map(v1, 51, 101, -2000, -1);
+		else if(v1 == 50) radiusChange = 0;
+		break;
 	}
-	if(uart_bytes_received(CH_2) > 2) 
-		uart_set_front(2, CH_2);
+	if(uart_bytes_received(CH_2) > 2)
+	uart_set_front(2, CH_2);
 	else
-		uart_reset_receive(CH_2);
+	uart_reset_receive(CH_2);
 	
 }
 
 void read_LS(){
-	//int LSVal = read_adc(15);
+	int LSVal = read_adc(15);
 	
-	//float lightV = LSVal * 4.98
-	//PORTB = 0b01000000;
-	
-	//PORTB = 0b00000000;
-	
+	float lightV = LSVal * 4.98 / 1023.0;
+	float lightR = 5300.0 * (4.98 / lightV - 1.0);
+	 // If resistance of photocell is greater than the dark
+	 if(lightR >= DARK_THRESHOLD){
+		 danger = 0;
+	 }
+	 else{
+		 if(!danger) lastLightOn = get_time();
+		 danger = 1;
+	 }
 }
 
 void idle(uint32_t idle_time)
@@ -234,6 +257,7 @@ void loop()
 	}
 }
 
+// 6 is nonce
 void setup()
 {
 	//start offset in ms, period in ms, function callback
@@ -260,14 +284,19 @@ void setup()
 	// pin8
 	PWM_Init_Tilt();
 	
-	sei();
-	
 // 		UART test - drive straight forward at 100 mm/s for 0.5 second
 // 		Roomba_Drive(100, 0x8000);
 // 			
 // 		_delay_ms(500);
 // 					
 // 		Roomba_Drive(0, 0);
+	
+	sei();
+	
+	// load my songs
+	uint8_t death_notes[5] = {94, 93, 92, 91, 90};
+	uint8_t death_durations[5] = {32, 32, 32, 32, 64};
+	Roomba_LoadSong(0, death_notes, death_durations, 5);
 	
 	Scheduler_Init();
 	
@@ -288,6 +317,7 @@ void setup()
 	Scheduler_StartPeriodicTask(10, 92, StateUpdate, updateList); // 0.1 seconds
 	Scheduler_StartPeriodicTask(21, 460, roombaMove, roombaList);  // 0.5 seconds
 	Scheduler_StartPeriodicTask(15, 46, servoMove, servoList);	// 0.05 seconds
+	Scheduler_StartPeriodicTask(30, 1838, reset, resetList);	// 2 seconds
 	
 }
 
