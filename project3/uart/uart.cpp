@@ -7,6 +7,8 @@
  */
 #include "uart.h"
 
+#define F_CPU 16000000UL
+
 #ifndef F_CPU
 #warning "F_CPU not defined for uart.c."
 #define F_CPU 11059200UL
@@ -43,7 +45,7 @@ void uart_init(UART_BPS bitrate, UART_CHANNEL cs)
 		case CH_1:
 			UBRR1H = 0;
 			UBRR1L = rate;
-		
+
 			// Clear USART Transmit complete flag, normal USART transmission speed
 			UCSR1A = _BV(U2X1);
 
@@ -52,7 +54,7 @@ void uart_init(UART_BPS bitrate, UART_CHANNEL cs)
 
 			// 8-bit data
 			UCSR1C = _BV(UCSZ11) | _BV(UCSZ10);
-		
+
 			uart_buffer_index_1 = 0;
 		break;
 		case CH_2:
@@ -96,7 +98,7 @@ void uart_putchar(uint8_t byte, UART_CHANNEL cs)
 			UDR2 = byte;
 		break;
 	}
-    
+
 }
 
 /**
@@ -122,7 +124,7 @@ uint8_t uart_get_byte(int index, UART_CHANNEL cs)
 		}
 		break;
 	}
-	
+
     return 0;
 }
 
@@ -192,8 +194,3 @@ ISR(USART2_RX_vect)
     uart_buffer_2[uart_buffer_index_2] = UDR2;
     uart_buffer_index_2 = (uart_buffer_index_2 + 1) % UART_BUFFER_SIZE;
 }
-
-
-
-
-
