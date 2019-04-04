@@ -146,6 +146,7 @@ void StateUpdate(LinkedList<arg_t> &obj){
 		write2bytes(4,1);
 		Roomba_PlaySong(0);
 		// may need to wait
+		_delay_ms(5000);
 		Roomba_ChangeState(PASSIVE_MODE);
 		exit(EXIT_SUCCESS);
 	}
@@ -291,6 +292,11 @@ void setup()
 // 		Roomba_Drive(0, 0);
 	
 	sei();
+	
+	// load my songs
+	uint8_t death_notes[5] = {94, 93, 92, 91, 90};
+	uint8_t death_durations[5] = {32, 32, 32, 32, 64};
+	Roomba_LoadSong(0, death_notes, death_durations, 5);
 	
 	Scheduler_Init();
 	
