@@ -72,6 +72,10 @@ int tiltSpeed = 0, maxAdjustTilt = 10;
 int velSpeed = 0, maxAdjustVel = 50;
 int radSpeed = 0, maxAdjustRad = 50;
 
+// for testing only
+int velSpeedSend = 0;
+int radSpeedSend = 0;
+
 // from bluetooth
 int state = 1;
 int timeLeft = 30;
@@ -107,7 +111,12 @@ void lcdPrint(LinkedList<arg_t> &obj){
 			lcd_puts(printfStr);
 			break;
 		case OUTPUT:
-			sprintf(printfStr,"PAN%3dTILT%3d B%1d",panSpeed,tiltSpeed,joystick1Z);
+// 			sprintf(printfStr,"PAN%3dTILT%3d B%1d",panSpeed,tiltSpeed,joystick1Z);
+// 			lcd_puts(printfStr);
+// 			sprintf(printfStr,"RAD%3dVELO%3d B%1d",radSpeed,velSpeed,joystick2Z);
+// 			lcd_puts(printfStr);
+// 			break;
+			sprintf(printfStr,"RAD%3dVELO%3d SB",radSpeedSend,velSpeedSend);
 			lcd_puts(printfStr);
 			sprintf(printfStr,"RAD%3dVELO%3d B%1d",radSpeed,velSpeed,joystick2Z);
 			lcd_puts(printfStr);
@@ -239,10 +248,13 @@ void velocityHandle(LinkedList<arg_t> &obj){
 	int oldVelocity = velSpeed;
 	
 	if(joystick2X > 520){
-		velSpeed = map(joystick2X, 520, 1023, 0, -maxAdjustVel);
+		velSpeed = map(joystick2X, 520, 800, 0, -maxAdjustVel+35);
+		velSpeed = map(joystick2X, 801, 1023, -maxAdjustVel+35, -maxAdjustVel);
+
 	}
 	else if(joystick2X < 480){
-		velSpeed = map(joystick2X, 480, 0, 0, maxAdjustVel);
+		velSpeed = map(joystick2X, 450, 200, 0, maxAdjustVel-35);
+		velSpeed = map(joystick2X, 199, 0, maxAdjustVel-34,maxAdjustVel);
 	}
 	else {
 		velSpeed = 0;
@@ -250,7 +262,9 @@ void velocityHandle(LinkedList<arg_t> &obj){
 	
 	if(velSpeed != oldVelocity){
 		sendType = 3;
-		sendByte = map(velSpeed, -maxAdjustVel, maxAdjustVel-1, 0, 100);
+		sendByte = map(velSpeed, -maxAdjustVel, maxAdjustVel, 0, 100);
+		// 
+		velSpeedSend = sendByte;
 		sendBluetooth();
 	}
 }
@@ -261,10 +275,12 @@ void radiusHandle(LinkedList<arg_t> &obj){
 	int oldRadius = radSpeed;
 	
 	if(joystick2Y > 520){
-		radSpeed = map(joystick2Y, 520, 1023, 0, -maxAdjustRad);
+		radSpeed = map(joystick2Y, 520, 800, 0, -maxAdjustRad+35);
+		radSpeed = map(joystick2Y, 801, 1023, -maxAdjustRad+35, -maxAdjustRad);
 	}
 	else if(joystick2Y < 480){
-		radSpeed = map(joystick2Y, 480, 0, 0, maxAdjustRad);
+		radSpeed = map(joystick2Y, 480, 200, 0, maxAdjustRad-35);
+		radSpeed = map(joystick2Y, 199, 0, maxAdjustRad-35, maxAdjustRad);
 	}
 	else {
 		radSpeed = 0;
@@ -272,7 +288,8 @@ void radiusHandle(LinkedList<arg_t> &obj){
 	
 	if(radSpeed != oldRadius){
 		sendType = 4;
-		sendByte = map(radSpeed, -maxAdjustRad, maxAdjustRad-1, 0, 100);
+		sendByte = map(radSpeed, -maxAdjustRad, maxAdjustRad, 0, 100);
+		radSpeedSend = sendByte;
 		sendBluetooth();
 	}
 }
@@ -301,8 +318,10 @@ void setup(){
 	adc_init();
 	lcd_init();
 	uart_init(UART_9600, CH_2);
-	Scheduler_Init();
+
+	sei();
 	
+	Scheduler_Init();	
 	Scheduler_StartPeriodicTask(0, 40,	joystickRead, obj);
 	Scheduler_StartPeriodicTask(0, 50,	lcdButtons, obj);
 	Scheduler_StartPeriodicTask(0, 100, lcdPrint, obj);
@@ -312,7 +331,6 @@ void setup(){
 	Scheduler_StartPeriodicTask(0, 100, velocityHandle, obj);
 	Scheduler_StartPeriodicTask(0, 50,	radiusHandle, obj);
 	Scheduler_StartPeriodicTask(0, 50,	readBluetooth, obj);
-	sei();
 }
 
 int main(){	
