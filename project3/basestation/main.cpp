@@ -4,6 +4,7 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <stddef.h>
 
 #include "string.h"
@@ -62,8 +63,8 @@ char sendByte = 0;
 // 	0: laser - 0: off, 1: on
 // 	1: pan - 0:81
 // 	2: tilt - 0:21
-// 	3: velocity - 1:100
-// 	4: radius - 1:100
+// 	3: velocity - 0:100
+// 	4: radius - 0:100
 
 // output values
 int panSpeed = 0, maxAdjustPan = 40;
@@ -96,9 +97,6 @@ void lcdPrint(LinkedList<arg_t> &obj){
 		else printType = INPUT;
 		screenChange = 0;
 	}
-	
-	if(new_joystick2Z) death = 1; // test
-	else death = 0; // test
 	if(death) printType = DEATH;
 		
 	switch(printType){
@@ -147,22 +145,22 @@ void lcdButtons(LinkedList<arg_t> &obj){
 void parseBytes(int byte1, int byte2){
 	switch(byte1){
 		case(0): // state
-		state = byte2; // 0: stand-still | 1: cruise
-		break;
+			state = byte2; // 0: stand-still | 1: cruise
+			break;
 		case(1): // timeLeft
-		timeLeft = byte2+1; // 0-29 seconds
-		break;
+			timeLeft = byte2+1; // 0-29 seconds
+			break;
 		case(2): // energy
-		energy = byte2; // 0-100%
-		break;
+			energy = byte2; // 0-100%
+			break;
 		case(3): // light sensor
-		shot = byte2; // 0: safe | 1: shot
-		break;
+			shot = byte2; // 0: safe | 1: shot
+			break;
 		case(4):
-		death = byte2; // 0: life | 1: death
-		break;
+			death = byte2; // 0: life | 1: death
+			break;
 		default:
-		break;
+			break;
 	}
 }
 
@@ -182,15 +180,17 @@ void readBluetooth(LinkedList<arg_t> &obj){
 }
 
 void laserHandle(LinkedList<arg_t> &obj){
-	if(new_joystick1Z == joystick1Z) return;
-	joystick1Z = new_joystick1Z;
+	if(new_joystick2Z == joystick2Z) return;
+	
+	joystick2Z = new_joystick2Z;
 	sendType = 0;
-	sendByte = joystick1Z;
+	sendByte = joystick2Z;
 	sendBluetooth();
+	
 }
 
 void panHandle(LinkedList<arg_t> &obj){
-	if(new_joystick1Y == joystick1Y) return;
+	if(abs(new_joystick1Y - joystick1Y) < 20) return;
 	joystick1Y = new_joystick1Y;
 	int oldSpeed = panSpeed;
 	
@@ -212,7 +212,7 @@ void panHandle(LinkedList<arg_t> &obj){
 }
 
 void tiltHandle(LinkedList<arg_t> &obj){
-	if(new_joystick1X == joystick1X) return;
+	if(abs(new_joystick1X - joystick1X) < 20) return;
 	joystick1X = new_joystick1X;
 	int oldSpeed = tiltSpeed;
 
@@ -234,7 +234,7 @@ void tiltHandle(LinkedList<arg_t> &obj){
 }
 
 void velocityHandle(LinkedList<arg_t> &obj){
-	if(new_joystick2X == joystick2X) return;
+	if(abs(new_joystick2X - joystick2X) < 20) return;
 	joystick2X = new_joystick2X;
 	int oldVelocity = velSpeed;
 	
@@ -250,13 +250,13 @@ void velocityHandle(LinkedList<arg_t> &obj){
 	
 	if(velSpeed != oldVelocity){
 		sendType = 3;
-		sendByte = map(velSpeed, -maxAdjustVel, maxAdjustVel-1, 1, 100);
+		sendByte = map(velSpeed, -maxAdjustVel, maxAdjustVel-1, 0, 100);
 		sendBluetooth();
 	}
 }
 
 void radiusHandle(LinkedList<arg_t> &obj){
-	if(new_joystick2Y == joystick2Y) return;
+	if(abs(new_joystick2Y - joystick2Y) < 20) return;
 	joystick2Y = new_joystick2Y;	
 	int oldRadius = radSpeed;
 	
@@ -272,7 +272,7 @@ void radiusHandle(LinkedList<arg_t> &obj){
 	
 	if(radSpeed != oldRadius){
 		sendType = 4;
-		sendByte = map(radSpeed, -maxAdjustRad, maxAdjustRad-1, 1, 100);
+		sendByte = map(radSpeed, -maxAdjustRad, maxAdjustRad-1, 0, 100);
 		sendBluetooth();
 	}
 }
