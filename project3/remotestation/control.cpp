@@ -105,26 +105,25 @@ void roombaMove(LinkedList<arg_t> &obj){
 	// calculate velocity and radius
 	int tempR = radiusChange;
 	int tempV = velocityChange;
-	
-	// if 1 or -1 set to 0x8000
-	if(tempR <= 1 && tempR >= -1){
+	//if(stateList.front()->pin == 0) tempV = 0; // in stand-still mode, only spin in place
+
+	// going straight
+	if(tempR == 0){
 		if(tempV == 0) tempR = 0;
 		else tempR = 0x8000;
+	} // spinning in place
+	else if(tempV == 0){
+		if (tempR > 0){
+			tempR = 1;
+			tempV = map(radiusChange, -1, -2000, 300, 1);
+		}
+		if (tempR < 0){
+			tempR = -1;
+			tempV = map(radiusChange, 1, 2000, 300, 1);
+		}
 	}
-	else if(tempV == 0 && tempR != 0){
-		if (tempR > 0) tempR = 1;
-		if (tempR < 0) tempR = -1;
-		tempV = map(radiusChange,-2000, 2000, -300, 300);
-	}
- 	
-	if(stateList.front()->pin == 0){
-		if (tempR > 0) tempR = 1;
-		if (tempR < 0) tempR = -1;
-	}
-// 	
-	
+
 	Roomba_Drive(tempV, tempR);
-	//
 }
 
 // send state updates every 10 ms
@@ -191,11 +190,12 @@ void sampleInputs(){
 			break;
 		case(3):// velocity range -500 to 500
 			velocityChange = map (v1, 0, 100, -300, 300); // making max change 50
-			
 			break; 			
 		case(4):// radius range -2000 2000,
 						//straight 32768 or hex 8000, spin in place -1 cw 1 ccw
-			radiusChange = map(v1, 0, 100, 2000, -2000);
+			if(v1 < 50) radiusChange = map(v1, 0, 49, 1, 2000); 
+			else if(v1 > 50) radiusChange = map(v1, 51, 100, -2000, -1);
+			else if(v1 == 50) radiusChange = 0;
 			break;
 	}
 	if(uart_bytes_received(CH_2) > 2) 
