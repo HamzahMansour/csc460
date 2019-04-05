@@ -167,6 +167,6 @@ void Roomba_PlaySong(int songNum);
  */
 void Roomba_Workout();
 
-
+uint8_t Roomba_BumperActivated(roomba_sensor_data_t*);
 
 #endif /* ROOMBA_H_ */

@@ -32,13 +32,13 @@ typedef union _u16u
 typedef struct
 {
     // packet 1 (external sensors)
-    uint8_t  bumps_wheeldrops;
-    uint8_t  wall;
+    uint8_t  bumps_wheeldrops; // 0 or 1
+    uint8_t  wall; // 1
     uint8_t  cliff_left;
     uint8_t  cliff_front_left;
     uint8_t  cliff_front_right;
     uint8_t  cliff_right;
-    uint8_t  virtual_wall;
+    uint8_t  virtual_wall; //1
     uint8_t  motor_overcurrents;
     uint8_t  dirt_left;
     uint8_t  dirt_right;
