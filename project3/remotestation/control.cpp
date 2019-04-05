@@ -54,12 +54,13 @@ void write2bytes(uint8_t one, uint8_t two){
 // lazer is pulsating consult with hamzah
 
 bool lastpin = 0;
-int lastShotTime = 0;
+unsigned long lastShotTime = 0;
 // not a periodic action
 void lazerShot(LinkedList<arg_t> &obj){
 	if(!lastpin && obj.front()->pin){
 		lastpin = 1;
 		PORTB |= 0b01000000;
+		Roomba_PlaySong(3);
 		// get current tic use that to see how long it's been and shut off after 2 seconds
 		lastShotTime = get_time();
 	}
@@ -102,8 +103,15 @@ void servoMove(LinkedList<arg_t> &obj){
 
 // polling task to change the roomba velocity
 // occurs every 2 seconds
+// ignore commands when a flag is set
+unsigned long ignoreRoombaTime = 0;
+bool ignoreMove = 0;
+int oldDanger = 0;
 void roombaMove(LinkedList<arg_t> &obj){
 	// calculate velocity and radius
+	if(get_time() > ignoreRoombaTime && ignoreMove){
+		ignoreMove = 0;
+	}
 	int tempR = radiusChange;
 	int tempV = velocityChange;
 	
@@ -124,7 +132,7 @@ void roombaMove(LinkedList<arg_t> &obj){
 			tempV = map(radiusChange, -1, -2000, 300, 1);
 		}
 	}
-
+	
 	Roomba_Drive(-tempV, -tempR);
 }
 
@@ -143,6 +151,7 @@ void StateUpdate(LinkedList<arg_t> &obj){
 	}
 	
 	if((get_time() - lastLightOn) >= 1838 && danger){
+		Roomba_Drive(0,0);
 		write2bytes(4,1);
 		Roomba_PlaySong(0);
 		// may need to wait
@@ -159,6 +168,20 @@ void StateUpdate(LinkedList<arg_t> &obj){
 	if(lastTicksleft != ticksLeft){
 		write2bytes(2, map(ticksLeft, 0, 9190, 0, 100));
 		lastTicksleft = ticksLeft;
+	}
+	
+	if(danger && !oldDanger){
+		write2bytes(3,1);
+	}
+	else if(!danger && oldDanger){
+		write2bytes(3,0);
+	}
+	roomba_sensor_data_t data;
+	Roomba_UpdateSensorPacket(EXTERNAL, &data);
+	if(data.bumps_wheeldrops == 0 || data.bumps_wheeldrops == 0 
+								|| data.wall || data.virtual_wall){
+		Roomba_Drive(-200, 0x8000);
+		ignoreRoombaTime = get_time() + 1838;
 	}
 }
 
@@ -296,7 +319,11 @@ void setup()
 	// load my songs
 	uint8_t death_notes[5] = {94, 93, 92, 91, 90};
 	uint8_t death_durations[5] = {32, 32, 32, 32, 64};
+		
+	uint8_t laser_notes[9] = {115, 119, 122, 125, 127, 125, 122, 119, 115};
+	uint8_t laser_durations[9] = {1, 1, 1, 1, 1, 1, 1, 1, 1};
 	Roomba_LoadSong(0, death_notes, death_durations, 5);
+	Roomba_LoadSong(3, death_notes, death_durations, 5);
 	
 	Scheduler_Init();
 	
