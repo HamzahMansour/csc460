@@ -34,7 +34,7 @@ int radiusChange = 0;
 int oldVelocityChange = 0;
 int oldradiusChange = 0;
 int ticksLeft = 9190; // available time for shooting
-const float DARK_THRESHOLD = 250000.0;//300000.0;
+const float DARK_THRESHOLD = 200000.0;//300000.0;
 
 // send info
 //		type and range
@@ -106,6 +106,7 @@ void servoMove(LinkedList<arg_t> &obj){
 // ignore commands when a flag is set
 int oldDanger = 0;
 bool backup = 0;
+bool danger = 0;
 void roombaMove(LinkedList<arg_t> &obj){
 	// calculate velocity and radius
 	if(backup){
@@ -114,7 +115,7 @@ void roombaMove(LinkedList<arg_t> &obj){
 	int tempR = radiusChange;
 	int tempV = velocityChange;
 	
-	//if(stateList.front()->pin == 0) tempV = 0; // in stand-still mode, only spin in place
+	if(stateList.front()->pin == 0) tempV = 0; // in stand-still mode, only spin in place
 
 	// going straight
 	if(tempR == 0){
@@ -132,6 +133,11 @@ void roombaMove(LinkedList<arg_t> &obj){
 		}
 	}
 	
+	if(danger){
+		tempV = 200;
+		tempR = -1;
+	}
+	
 	Roomba_Drive(tempV, tempR);
 }
 
@@ -139,7 +145,6 @@ void roombaMove(LinkedList<arg_t> &obj){
 int lastStateChange = 0;
 int lastTicksleft = ticksLeft;
 int lastLightOn = 0;
-bool danger = 0;
 //update the states to the remote periodic task
 void StateUpdate(LinkedList<arg_t> &obj){
 	
@@ -336,7 +341,7 @@ void setup()
 	
 	// pins used as state identifiers
 	arg_t lazer{'a', 0};
-	arg_t state {'a', 1};
+	arg_t state {'a', 0};
 	
 	// write default values to servos
 	PWM_write_Pan(2050);
