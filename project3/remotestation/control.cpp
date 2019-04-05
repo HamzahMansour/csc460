@@ -34,7 +34,7 @@ int radiusChange = 0;
 int oldVelocityChange = 0;
 int oldradiusChange = 0;
 int ticksLeft = 9190; // available time for shooting
-const float DARK_THRESHOLD = 400000.0;
+const float DARK_THRESHOLD = 250000.0;//300000.0;
 
 // send info
 //		type and range
@@ -104,13 +104,12 @@ void servoMove(LinkedList<arg_t> &obj){
 // polling task to change the roomba velocity
 // occurs every 2 seconds
 // ignore commands when a flag is set
-unsigned long ignoreRoombaTime = 0;
-bool ignoreMove = 0;
 int oldDanger = 0;
+bool backup = 0;
 void roombaMove(LinkedList<arg_t> &obj){
 	// calculate velocity and radius
-	if(get_time() > ignoreRoombaTime && ignoreMove){
-		ignoreMove = 0;
+	if(backup){
+		return;
 	}
 	int tempR = radiusChange;
 	int tempV = velocityChange;
@@ -133,7 +132,7 @@ void roombaMove(LinkedList<arg_t> &obj){
 		}
 	}
 	
-	Roomba_Drive(-tempV, -tempR);
+	Roomba_Drive(tempV, tempR);
 }
 
 // send state updates every 10 ms
@@ -176,12 +175,18 @@ void StateUpdate(LinkedList<arg_t> &obj){
 	else if(!danger && oldDanger){
 		write2bytes(3,0);
 	}
+	oldDanger = danger;
+	
+	//may be too fast
 	roomba_sensor_data_t data;
 	Roomba_UpdateSensorPacket(EXTERNAL, &data);
-	if(data.bumps_wheeldrops == 0 || data.bumps_wheeldrops == 0 
-								|| data.wall || data.virtual_wall){
+	bool senseWall = (Roomba_BumperActivated(&data) || data.wall || data.virtual_wall);
+	if(senseWall && !backup){
 		Roomba_Drive(-200, 0x8000);
-		ignoreRoombaTime = get_time() + 1838;
+		backup = 1;
+	}
+	else if(!senseWall && backup){
+		backup = 0;
 	}
 }
 
@@ -320,10 +325,12 @@ void setup()
 	uint8_t death_notes[5] = {94, 93, 92, 91, 90};
 	uint8_t death_durations[5] = {32, 32, 32, 32, 64};
 		
-	uint8_t laser_notes[9] = {115, 119, 122, 125, 127, 125, 122, 119, 115};
-	uint8_t laser_durations[9] = {1, 1, 1, 1, 1, 1, 1, 1, 1};
+	//uint8_t laser_notes[9] = {115, 119, 122, 125, 127, 125, 122, 119, 115};
+	//uint8_t laser_durations[9] = {4, 4, 4, 4, 4, 4, 4, 4, 4};
 	Roomba_LoadSong(0, death_notes, death_durations, 5);
-	Roomba_LoadSong(3, death_notes, death_durations, 5);
+	//Roomba_LoadSong(3, laser_notes, laser_durations, 9);
+	
+	//Roomba_PlaySong(3);
 	
 	Scheduler_Init();
 	
