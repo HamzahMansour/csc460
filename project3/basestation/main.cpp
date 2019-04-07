@@ -26,8 +26,6 @@ typedef enum print_type
 	DEATH,
 } PRINT_TYPE;
 
-// keep as global variables?
-
 // input pin values
 uint8_t joystick1X_PIN = 14;
 uint8_t joystick1Y_PIN = 15;
@@ -84,13 +82,13 @@ int energy = 100;
 int death = 0;
 
 void joystickRead(LinkedList<arg_t> &obj){
-	new_joystick1X = read_adc(joystick1X_PIN); // do each twice ?
+	new_joystick1X = read_adc(joystick1X_PIN);
 	new_joystick1Y = read_adc(joystick1Y_PIN);
 	new_joystick1Z = 1>>(PINA & (1<<PINA0));
 	new_joystick2X = read_adc(joystick2X_PIN);
 	new_joystick2Y = read_adc(joystick2Y_PIN);
 	new_joystick2Z = 1>>(PINA & (1<<PINA1));
-	
+
 	if(buttonPress == 5) screenChange = 1; // SELECT pressed
 }
 
@@ -102,7 +100,7 @@ void lcdPrint(LinkedList<arg_t> &obj){
 		screenChange = 0;
 	}
 	if(death) printType = DEATH;
-		
+
 	switch(printType){
 		case INPUT:
 			sprintf(printfStr,"1 X%04d Y%04d Z%1d",joystick1X,joystick1Y,joystick1Z);
@@ -111,12 +109,7 @@ void lcdPrint(LinkedList<arg_t> &obj){
 			lcd_puts(printfStr);
 			break;
 		case OUTPUT:
-// 			sprintf(printfStr,"PAN%3dTILT%3d B%1d",panSpeed,tiltSpeed,joystick1Z);
-// 			lcd_puts(printfStr);
-// 			sprintf(printfStr,"RAD%3dVELO%3d B%1d",radSpeed,velSpeed,joystick2Z);
-// 			lcd_puts(printfStr);
-// 			break;
-			sprintf(printfStr,"RAD%3dVELO%3d SB",radSpeedSend,velSpeedSend);
+			sprintf(printfStr,"PAN%3dTILT%3d B%1d",panSpeed,tiltSpeed,joystick1Z);
 			lcd_puts(printfStr);
 			sprintf(printfStr,"RAD%3dVELO%3d B%1d",radSpeed,velSpeed,joystick2Z);
 			lcd_puts(printfStr);
@@ -185,24 +178,24 @@ void readBluetooth(LinkedList<arg_t> &obj){
 		for(int i=0; i<count-1; i+=2) parseBytes(uart_get_byte(i,CH_2),uart_get_byte(i+1,CH_2));
 		uart_set_front(count, CH_2);
 	}
-	else for(int i=0; i<count; i+=2) parseBytes(uart_get_byte(i,CH_2),uart_get_byte(i+1,CH_2));		
+	else for(int i=0; i<count; i+=2) parseBytes(uart_get_byte(i,CH_2),uart_get_byte(i+1,CH_2));
 }
 
 void laserHandle(LinkedList<arg_t> &obj){
 	if(new_joystick2Z == joystick2Z) return;
-	
+
 	joystick2Z = new_joystick2Z;
 	sendType = 0;
 	sendByte = joystick2Z;
 	sendBluetooth();
-	
+
 }
 
 void panHandle(LinkedList<arg_t> &obj){
 	if(abs(new_joystick1Y - joystick1Y) < 20) return;
 	joystick1Y = new_joystick1Y;
 	int oldSpeed = panSpeed;
-	
+
 	if(joystick1Y > 540){
 		panSpeed = map(joystick1Y, 1021, 540, -maxAdjustPan, 0);
 	}
@@ -246,7 +239,7 @@ void velocityHandle(LinkedList<arg_t> &obj){
 	if(abs(new_joystick2X - joystick2X) < 20) return;
 	joystick2X = new_joystick2X;
 	int oldVelocity = velSpeed;
-	
+
 	if(joystick2X > 520){
 		velSpeed = map(joystick2X, 520, 800, 0, -maxAdjustVel+35);
 		velSpeed = map(joystick2X, 801, 1023, -maxAdjustVel+35, -maxAdjustVel);
@@ -259,11 +252,11 @@ void velocityHandle(LinkedList<arg_t> &obj){
 	else {
 		velSpeed = 0;
 	}
-	
+
 	if(velSpeed != oldVelocity){
 		sendType = 3;
 		sendByte = map(velSpeed, -maxAdjustVel, maxAdjustVel, 0, 100);
-		// 
+		//
 		velSpeedSend = sendByte;
 		sendBluetooth();
 	}
@@ -271,9 +264,9 @@ void velocityHandle(LinkedList<arg_t> &obj){
 
 void radiusHandle(LinkedList<arg_t> &obj){
 	if(abs(new_joystick2Y - joystick2Y) < 20) return;
-	joystick2Y = new_joystick2Y;	
+	joystick2Y = new_joystick2Y;
 	int oldRadius = radSpeed;
-	
+
 	if(joystick2Y > 520){
 		radSpeed = map(joystick2Y, 520, 800, 0, -maxAdjustRad+35);
 		radSpeed = map(joystick2Y, 801, 1023, -maxAdjustRad+35, -maxAdjustRad);
@@ -285,7 +278,7 @@ void radiusHandle(LinkedList<arg_t> &obj){
 	else {
 		radSpeed = 0;
 	}
-	
+
 	if(radSpeed != oldRadius){
 		sendType = 4;
 		sendByte = map(radSpeed, -maxAdjustRad, maxAdjustRad, 0, 100);
@@ -320,8 +313,8 @@ void setup(){
 	uart_init(UART_9600, CH_2);
 
 	sei();
-	
-	Scheduler_Init();	
+
+	Scheduler_Init();
 	Scheduler_StartPeriodicTask(0, 40,	joystickRead, obj);
 	Scheduler_StartPeriodicTask(0, 50,	lcdButtons, obj);
 	Scheduler_StartPeriodicTask(0, 100, lcdPrint, obj);
@@ -333,10 +326,10 @@ void setup(){
 	Scheduler_StartPeriodicTask(0, 50,	readBluetooth, obj);
 }
 
-int main(){	
+int main(){
 	setup();
 	for(;;){
-		loop();		
+		loop();
 	}
 	for(;;);
 	return 0;
