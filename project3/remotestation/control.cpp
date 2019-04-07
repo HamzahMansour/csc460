@@ -34,7 +34,7 @@ int radiusChange = 0;
 int oldVelocityChange = 0;
 int oldradiusChange = 0;
 int ticksLeft = 9190; // available time for shooting
-const float DARK_THRESHOLD = 200000.0;//300000.0;
+//const float DARK_THRESHOLD = 200000.0;//300000.0;
 
 // send info
 //		type and range
@@ -60,7 +60,7 @@ void lazerShot(LinkedList<arg_t> &obj){
 	if(!lastpin && obj.front()->pin){
 		lastpin = 1;
 		PORTB |= 0b01000000;
-		Roomba_PlaySong(3);
+		Roomba_PlaySong(1);
 		// get current tic use that to see how long it's been and shut off after 2 seconds
 		lastShotTime = get_time();
 	}
@@ -187,7 +187,7 @@ void StateUpdate(LinkedList<arg_t> &obj){
 	Roomba_UpdateSensorPacket(EXTERNAL, &data);
 	bool senseWall = (Roomba_BumperActivated(&data) || data.wall || data.virtual_wall);
 	if(senseWall && !backup){
-		Roomba_Drive(-200, 0x8000);
+		if(stateList.front()->pin == 1) Roomba_Drive(-200, 0x8000);
 		backup = 1;
 	}
 	else if(!senseWall && backup){
@@ -257,12 +257,10 @@ void sampleInputs(){
 }
 
 void read_LS(){
-	int LSVal = read_adc(15);
+	int light = 1>>(PINA & (1<<PINA0));
 	
-	float lightV = LSVal * 4.98 / 1023.0;
-	float lightR = 5300.0 * (4.98 / lightV - 1.0);
 	 // If resistance of photocell is greater than the dark
-	 if(lightR >= DARK_THRESHOLD){
+	 if( light == 0){
 		 danger = 0;
 	 }
 	 else{
@@ -304,13 +302,24 @@ void setup()
 	DDRB = 0xFF;
 	
 	//light sensor
+	DDRA = 0x00;
 	PORTA = 0xFF;
 	
-	// TX2 RX2
-	uart_init(UART_9600, CH_2);
 	
 	//dd is digital 32, TX1 RX1
 	Roomba_Init(); // initialize the roomba
+	
+	// load my songs
+	uint8_t death_notes[5] = {94, 93, 92, 91, 90};
+	uint8_t death_durations[5] = {32, 32, 32, 32, 64};
+	
+	uint8_t laser_notes[3] = {103, 97, 91};
+	uint8_t laser_durations[3] = {4, 4, 4};
+	Roomba_LoadSong(0, death_notes, death_durations, 5);
+	Roomba_LoadSong(1, laser_notes, laser_durations, 3);
+	
+	// TX2 RX2
+	uart_init(UART_9600, CH_2);
 	
 	// pin3
 	PWM_Init_Pan();
@@ -325,17 +334,6 @@ void setup()
 // 		Roomba_Drive(0, 0);
 	
 	sei();
-	
-	// load my songs
-	uint8_t death_notes[5] = {94, 93, 92, 91, 90};
-	uint8_t death_durations[5] = {32, 32, 32, 32, 64};
-		
-	//uint8_t laser_notes[9] = {115, 119, 122, 125, 127, 125, 122, 119, 115};
-	//uint8_t laser_durations[9] = {4, 4, 4, 4, 4, 4, 4, 4, 4};
-	Roomba_LoadSong(0, death_notes, death_durations, 5);
-	//Roomba_LoadSong(3, laser_notes, laser_durations, 9);
-	
-	//Roomba_PlaySong(3);
 	
 	Scheduler_Init();
 	
